@@ -5,7 +5,27 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        // Terminal aesthetic: monospace is the default everywhere.
+        sans: [
+          "JetBrains Mono",
+          "Cascadia Code",
+          "Fira Code",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Consolas",
+          "monospace",
+        ],
+        mono: [
+          "JetBrains Mono",
+          "Cascadia Code",
+          "Fira Code",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Consolas",
+          "monospace",
+        ],
       },
     },
   },

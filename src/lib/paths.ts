@@ -11,6 +11,13 @@ export const CODEX_HOME =
 
 export const CODEX_SESSIONS_DIR = path.join(CODEX_HOME, "sessions");
 
+/**
+ * Codex's CLI session picker reads its displayed titles from this flat index
+ * (one JSON record per line: { id, thread_name, updated_at }), NOT from the
+ * rollout files. Mirroring renames here is what makes them show up in `codex`.
+ */
+export const CODEX_SESSION_INDEX = path.join(CODEX_HOME, "session_index.jsonl");
+
 export const GEMINI_HOME =
   process.env.GEMINI_HOME ?? path.join(os.homedir(), ".gemini");
 

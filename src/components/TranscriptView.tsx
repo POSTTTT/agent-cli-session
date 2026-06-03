@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { TranscriptEntry } from "@/lib/sessions";
 import { Markdown } from "./Markdown";
 
@@ -9,6 +9,11 @@ type Filter = "all" | "messages" | "tools";
 export function TranscriptView({ entries }: { entries: TranscriptEntry[] }) {
   const [filter, setFilter] = useState<Filter>("messages");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Stable identity so memoized EntryCards don't all re-render when one toggles.
+  const toggle = useCallback((key: string) => {
+    setExpanded((p) => ({ ...p, [key]: !p[key] }));
+  }, []);
 
   const toolNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -121,13 +126,12 @@ export function TranscriptView({ entries }: { entries: TranscriptEntry[] }) {
           return (
             <EntryCard
               key={key}
+              id={key}
               entry={e}
               toolNameById={toolNameById}
               toolResultById={toolResultById}
               isOpen={!!expanded[key]}
-              onToggle={() =>
-                setExpanded((p) => ({ ...p, [key]: !p[key] }))
-              }
+              onToggle={toggle}
             />
           );
         })}
@@ -276,18 +280,20 @@ function stripAnsi(s: string): string {
   return s.replace(/\[[0-9;]*m/g, "");
 }
 
-function EntryCard({
+const EntryCard = memo(function EntryCard({
+  id,
   entry,
   toolNameById,
   toolResultById,
   isOpen,
   onToggle,
 }: {
+  id: string;
   entry: TranscriptEntry;
   toolNameById: Map<string, string>;
   toolResultById: Map<string, { text: string; isError: boolean }>;
   isOpen: boolean;
-  onToggle: () => void;
+  onToggle: (id: string) => void;
 }) {
   const raw = entry.raw as any;
   const role = entry.role ?? entry.type;
@@ -329,7 +335,7 @@ function EntryCard({
       </div>
 
       <button
-        onClick={onToggle}
+        onClick={() => onToggle(id)}
         className="mt-2 text-[10px] text-white/40 hover:text-white/70"
       >
         {isOpen ? "hide raw" : "show raw"}
@@ -341,7 +347,7 @@ function EntryCard({
       )}
     </div>
   );
-}
+});
 
 function renderContent(
   content: unknown,

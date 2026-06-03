@@ -29,6 +29,10 @@ export type SessionSummary = {
   inputTokens: number;
   outputTokens: number;
   alias: string | null;
+  // Codex only: the title shown in the `codex` CLI session picker, read from
+  // ~/.codex/session_index.jsonl. Used as the default title so the app and CLI
+  // agree when no custom alias is set.
+  threadName?: string | null;
 };
 
 export type TranscriptEntry = {
@@ -76,58 +80,79 @@ async function readCwdFromFile(filePath: string): Promise<string | null> {
   return null;
 }
 
+// Resolving a project's real path means streaming session files to find a
+// "cwd" line. That's wasteful to repeat on every request, so cache the result
+// keyed on the newest file mtime — the cache self-invalidates the moment any
+// session in the project is written to.
+const projectPathCache = new Map<string, { key: number; path: string }>();
+
 export async function resolveProjectPath(projectId: string): Promise<string> {
   const dir = path.join(PROJECTS_DIR, projectId);
   const files = await safeReaddir(dir);
   const jsonl = files.filter((f) => f.endsWith(".jsonl"));
-  // Try newest first — most likely to reflect the current real path.
-  const withMtime: { f: string; mtime: number }[] = [];
-  for (const f of jsonl) {
-    const s = await safeStat(path.join(dir, f));
-    if (s) withMtime.push({ f, mtime: s.mtimeMs });
-  }
+  // Stat in parallel; try newest first — most likely to reflect the real path.
+  const stats = await Promise.all(
+    jsonl.map(async (f) => {
+      const s = await safeStat(path.join(dir, f));
+      return s ? { f, mtime: s.mtimeMs } : null;
+    }),
+  );
+  const withMtime = stats.filter(
+    (x): x is { f: string; mtime: number } => x !== null,
+  );
+  if (withMtime.length === 0) return decodeProjectId(projectId);
   withMtime.sort((a, b) => b.mtime - a.mtime);
+
+  const key = withMtime[0].mtime;
+  const cached = projectPathCache.get(projectId);
+  if (cached && cached.key === key) return cached.path;
+
+  let resolved = decodeProjectId(projectId);
   for (const { f } of withMtime) {
     const cwd = await readCwdFromFile(path.join(dir, f));
-    if (cwd) return cwd;
+    if (cwd) {
+      resolved = cwd;
+      break;
+    }
   }
-  return decodeProjectId(projectId);
+  projectPathCache.set(projectId, { key, path: resolved });
+  return resolved;
 }
 
 export async function listProjects(): Promise<ProjectSummary[]> {
   const entries = await safeReaddir(PROJECTS_DIR);
-  const results: ProjectSummary[] = [];
-  for (const id of entries) {
-    if (id.startsWith("_")) continue; // skip _trash, _meta etc.
-    const dir = path.join(PROJECTS_DIR, id);
-    const stat = await safeStat(dir);
-    if (!stat?.isDirectory()) continue;
-    const files = await safeReaddir(dir);
-    let totalBytes = 0;
-    let sessionCount = 0;
-    let lastModified = stat.mtimeMs;
-    let firstActivity = stat.birthtimeMs || stat.ctimeMs || stat.mtimeMs;
-    for (const f of files) {
-      if (!f.endsWith(".jsonl")) continue;
-      const s = await safeStat(path.join(dir, f));
-      if (!s) continue;
-      totalBytes += s.size;
-      sessionCount += 1;
-      if (s.mtimeMs > lastModified) lastModified = s.mtimeMs;
-      const birth = s.birthtimeMs || s.ctimeMs || s.mtimeMs;
-      if (birth < firstActivity) firstActivity = birth;
-    }
-    results.push({
-      id,
-      decodedPath: await resolveProjectPath(id),
-      sessionCount,
-      totalBytes,
-      lastModified,
-      firstActivity,
-    });
-  }
-  results.sort((a, b) => b.lastModified - a.lastModified);
-  return results;
+  // Process projects concurrently rather than one-at-a-time.
+  const results = await Promise.all(
+    entries.map(async (id): Promise<ProjectSummary | null> => {
+      if (id.startsWith("_")) return null; // skip _trash, _meta etc.
+      const dir = path.join(PROJECTS_DIR, id);
+      const stat = await safeStat(dir);
+      if (!stat?.isDirectory()) return null;
+      const files = await safeReaddir(dir);
+      const jsonl = files.filter((f) => f.endsWith(".jsonl"));
+      const [stats, decodedPath] = await Promise.all([
+        Promise.all(jsonl.map((f) => safeStat(path.join(dir, f)))),
+        resolveProjectPath(id),
+      ]);
+
+      let totalBytes = 0;
+      let sessionCount = 0;
+      let lastModified = stat.mtimeMs;
+      let firstActivity = stat.birthtimeMs || stat.ctimeMs || stat.mtimeMs;
+      for (const s of stats) {
+        if (!s) continue;
+        totalBytes += s.size;
+        sessionCount += 1;
+        if (s.mtimeMs > lastModified) lastModified = s.mtimeMs;
+        const birth = s.birthtimeMs || s.ctimeMs || s.mtimeMs;
+        if (birth < firstActivity) firstActivity = birth;
+      }
+      return { id, decodedPath, sessionCount, totalBytes, lastModified, firstActivity };
+    }),
+  );
+  return results
+    .filter((r): r is ProjectSummary => r !== null)
+    .sort((a, b) => b.lastModified - a.lastModified);
 }
 
 export async function listSessions(projectId: string): Promise<SessionSummary[]> {
@@ -136,26 +161,28 @@ export async function listSessions(projectId: string): Promise<SessionSummary[]>
     safeReaddir(dir),
     loadAliases(),
   ]);
-  const out: SessionSummary[] = [];
-  for (const f of files) {
-    if (!f.endsWith(".jsonl")) continue;
-    const filePath = path.join(dir, f);
-    const stat = await safeStat(filePath);
-    if (!stat) continue;
-    const sessionId = f.replace(/\.jsonl$/, "");
-    const summary = await summarizeSession(filePath);
-    out.push({
-      projectId,
-      sessionId,
-      file: filePath,
-      bytes: stat.size,
-      mtime: stat.mtimeMs,
-      ...summary,
-      alias: getAlias(aliases, projectId, sessionId),
-    });
-  }
-  out.sort((a, b) => b.mtime - a.mtime);
-  return out;
+  const jsonl = files.filter((f) => f.endsWith(".jsonl"));
+  const out = await Promise.all(
+    jsonl.map(async (f): Promise<SessionSummary | null> => {
+      const filePath = path.join(dir, f);
+      const stat = await safeStat(filePath);
+      if (!stat) return null;
+      const sessionId = f.replace(/\.jsonl$/, "");
+      const summary = await summarizeSession(filePath);
+      return {
+        projectId,
+        sessionId,
+        file: filePath,
+        bytes: stat.size,
+        mtime: stat.mtimeMs,
+        ...summary,
+        alias: getAlias(aliases, projectId, sessionId),
+      };
+    }),
+  );
+  return out
+    .filter((s): s is SessionSummary => s !== null)
+    .sort((a, b) => b.mtime - a.mtime);
 }
 
 async function summarizeSession(filePath: string) {
