@@ -1,12 +1,32 @@
 import React from "react";
 
 export function Markdown({ text }: { text: string }) {
-  const blocks = parseBlocks(text);
+  const blocks = parseBlocksCached(text);
   return (
     <div className="space-y-2 text-sm leading-relaxed">
       {blocks.map((b, i) => renderBlock(b, i))}
     </div>
   );
+}
+
+/* parseBlocks is pure, but Markdown re-renders whenever its parent does.
+   Cache parsed output by source text so a parent re-render (filter toggle,
+   expanding one card) doesn't re-tokenize every message. Bounded so it
+   can't grow without limit on huge transcripts. */
+const PARSE_CACHE = new Map<string, Block[]>();
+const PARSE_CACHE_MAX = 2000;
+
+function parseBlocksCached(text: string): Block[] {
+  const hit = PARSE_CACHE.get(text);
+  if (hit) return hit;
+  const blocks = parseBlocks(text);
+  if (PARSE_CACHE.size >= PARSE_CACHE_MAX) {
+    // Drop the oldest entry (Map preserves insertion order).
+    const oldest = PARSE_CACHE.keys().next().value;
+    if (oldest !== undefined) PARSE_CACHE.delete(oldest);
+  }
+  PARSE_CACHE.set(text, blocks);
+  return blocks;
 }
 
 /* ---------- block parser ---------- */
