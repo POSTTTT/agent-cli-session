@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import path from "node:path";
-import { CODEX_SESSIONS_DIR, encodeId, decodeId } from "./paths";
+import {
+  CODEX_SESSIONS_DIR,
+  CODEX_SESSION_INDEX,
+  encodeId,
+  decodeId,
+} from "./paths";
 import type { ProjectSummary, SessionSummary } from "./sessions";
 import type { AgentEntry } from "./transcript";
 
@@ -164,15 +169,17 @@ export async function listCodexSessions(
   projectId: string,
 ): Promise<SessionSummary[]> {
   const cwd = decodeId(projectId);
-  const [files, aliases] = await Promise.all([
+  const [files, aliases, threadNames] = await Promise.all([
     walkCodexFiles(),
     loadCodexAliases(),
+    loadCodexThreadNames(),
   ]);
   const out: SessionSummary[] = [];
   for (const f of files) {
     const meta = await summarizeCodexFile(f.absPath);
     if ((meta.cwd ?? "(unknown)") !== cwd) continue;
     const sessionId = encodeId(f.relPath);
+    const uuid = meta.uuid ?? uuidFromRelPath(f.relPath);
     out.push({
       projectId,
       sessionId,
@@ -181,6 +188,8 @@ export async function listCodexSessions(
       mtime: f.mtime,
       firstUserPrompt: meta.firstUserPrompt,
       aiTitle: meta.uuid, // surfaced as the short id, no auto-title concept
+      // The CLI picker's title — used as the app's default so the two agree.
+      threadName: (uuid && threadNames.get(uuid)) || null,
       messageCount: meta.messageCount,
       model: meta.model,
       gitBranch: meta.gitBranch,
@@ -312,6 +321,8 @@ export async function deleteCodexSession(sessionId: string) {
   const absPath = path.join(CODEX_SESSIONS_DIR, relPath);
   await fs.rm(absPath, { force: true, maxRetries: 3, retryDelay: 200 });
   await removeCodexAlias(sessionId);
+  const uuid = uuidFromRelPath(relPath);
+  if (uuid) await syncCodexSessionIndex(uuid, null);
 }
 
 export async function deleteCodexProject(projectId: string) {
@@ -403,7 +414,88 @@ export async function computeCodexStats(): Promise<GlobalStats> {
   };
 }
 
-// --- Codex rename sidecar (no JSONL mirror — Codex has no /resume titles) ---
+// --- Codex rename: sidecar (app source of truth) + session_index mirror -----
+
+/** Pull the session UUID out of a rollout relpath/filename. */
+function uuidFromRelPath(relPath: string): string | null {
+  const m = relPath.match(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+  );
+  return m ? m[0] : null;
+}
+
+type SessionIndexRecord = {
+  id: string;
+  thread_name?: string;
+  updated_at?: string;
+  [k: string]: unknown;
+};
+
+/** Read ~/.codex/session_index.jsonl into a uuid → thread_name map. */
+async function loadCodexThreadNames(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  let text: string;
+  try {
+    text = await fs.readFile(CODEX_SESSION_INDEX, "utf8");
+  } catch {
+    return map;
+  }
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const rec = JSON.parse(line) as SessionIndexRecord;
+      if (typeof rec.id === "string" && typeof rec.thread_name === "string")
+        map.set(rec.id, rec.thread_name); // last occurrence wins
+    } catch {
+      // ignore malformed lines
+    }
+  }
+  return map;
+}
+
+/**
+ * Update the Codex CLI's session index so a rename done in this app shows up
+ * in the `codex` picker. Best-effort: rewrites the whole file (preserving all
+ * other records and any extra fields). `name === null` removes our title
+ * override so the CLI falls back to its derived title.
+ */
+async function syncCodexSessionIndex(
+  uuid: string,
+  name: string | null,
+): Promise<void> {
+  let records: SessionIndexRecord[] = [];
+  try {
+    const text = await fs.readFile(CODEX_SESSION_INDEX, "utf8");
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        records.push(JSON.parse(line) as SessionIndexRecord);
+      } catch {
+        // drop unparseable lines on rewrite
+      }
+    }
+  } catch {
+    // index doesn't exist yet — we'll create it on write (only when setting)
+  }
+
+  const idx = records.findIndex((r) => r.id === uuid);
+  if (name === null) {
+    if (idx === -1) return; // nothing to clear
+    records.splice(idx, 1);
+  } else if (idx >= 0) {
+    records[idx].thread_name = name;
+    records[idx].updated_at = new Date().toISOString();
+  } else {
+    records.push({ id: uuid, thread_name: name, updated_at: new Date().toISOString() });
+  }
+
+  const body = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
+  try {
+    await fs.writeFile(CODEX_SESSION_INDEX, body, "utf8");
+  } catch {
+    // best-effort; the app's sidecar still holds the rename
+  }
+}
 
 type AliasMap = Record<string, string>;
 
@@ -431,6 +523,10 @@ export async function setCodexAlias(
   if (trimmed === "") delete map[sessionId];
   else map[sessionId] = trimmed;
   await writeCodexAliases(map);
+
+  // Mirror to Codex's own session index so the `codex` CLI picker matches.
+  const uuid = uuidFromRelPath(decodeId(sessionId));
+  if (uuid) await syncCodexSessionIndex(uuid, trimmed === "" ? null : trimmed);
 }
 
 async function removeCodexAlias(sessionId: string): Promise<void> {

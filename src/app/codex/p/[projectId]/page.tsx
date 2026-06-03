@@ -37,7 +37,7 @@ export default async function CodexProjectPage({
                   projectId={decoded}
                   sessionId={s.sessionId}
                   alias={s.alias}
-                  aiTitle={null}
+                  aiTitle={s.threadName ?? null}
                   firstUserPrompt={s.firstUserPrompt}
                   basePath="/codex/p"
                   kind="codex"

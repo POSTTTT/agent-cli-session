@@ -29,6 +29,10 @@ export type SessionSummary = {
   inputTokens: number;
   outputTokens: number;
   alias: string | null;
+  // Codex only: the title shown in the `codex` CLI session picker, read from
+  // ~/.codex/session_index.jsonl. Used as the default title so the app and CLI
+  // agree when no custom alias is set.
+  threadName?: string | null;
 };
 
 export type TranscriptEntry = {
