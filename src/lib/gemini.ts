@@ -261,6 +261,7 @@ export async function listGeminiSessions(
       mtime: f.mtime,
       firstUserPrompt: meta.firstUserPrompt,
       aiTitle: meta.uuid,
+      customTitle: null,
       messageCount: meta.messageCount,
       model: meta.model,
       gitBranch: null,
