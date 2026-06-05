@@ -46,9 +46,10 @@ export async function setAlias(
   // Also mirror to the .jsonl so Claude Code's /resume picker shows the same
   // title. We append a custom-title line — the exact entry the CLI's `/rename`
   // writes — so the CLI picks it up. Both readers take the latest occurrence,
-  // so this overrides any earlier title without rewriting the file. Skip the
-  // mirror when clearing, so we never write a blank title into the JSONL.
-  if (trimmed !== "") await appendCustomTitle(projectId, sessionId, trimmed);
+  // so this overrides any earlier title without rewriting the file. We append
+  // even when clearing (empty string) so the cleared state overrides a prior
+  // custom-title rather than leaving a stale name behind.
+  await appendCustomTitle(projectId, sessionId, trimmed);
 }
 
 async function appendCustomTitle(
@@ -62,11 +63,17 @@ async function appendCustomTitle(
   } catch {
     return; // session file doesn't exist; nothing to do
   }
-  const line =
+  // Mirror exactly what the CLI's `/rename` writes: a `custom-title` entry
+  // (drives the /resume picker and this app) and an `agent-name` entry (drives
+  // the session-name chip shown in the running CLI). Writing both keeps the
+  // app, the picker, and the CLI's chip in agreement.
+  const lines =
     JSON.stringify({ type: "custom-title", customTitle: title, sessionId }) +
+    "\n" +
+    JSON.stringify({ type: "agent-name", agentName: title, sessionId }) +
     "\n";
   try {
-    await fs.appendFile(file, line, "utf8");
+    await fs.appendFile(file, lines, "utf8");
   } catch {
     // best-effort sync; the sidecar still has the rename
   }

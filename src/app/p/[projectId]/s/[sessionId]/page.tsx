@@ -66,7 +66,9 @@ function findCustomTitle(
   for (const e of entries) {
     if (e.type === "custom-title") {
       const raw = e.raw as { customTitle?: string };
-      if (typeof raw.customTitle === "string") last = raw.customTitle;
+      // Latest occurrence wins; empty (a cleared name) resets to no title.
+      if (typeof raw.customTitle === "string")
+        last = raw.customTitle.trim() ? raw.customTitle : null;
     }
   }
   return last;

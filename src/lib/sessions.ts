@@ -217,7 +217,9 @@ async function summarizeSession(filePath: string) {
       continue;
     }
     if (obj.type === "custom-title" && typeof obj.customTitle === "string") {
-      customTitle = obj.customTitle;
+      // Latest occurrence wins; an empty value (a cleared name) overrides
+      // back to "no custom title" rather than displaying a blank.
+      customTitle = obj.customTitle.trim() ? obj.customTitle : null;
       continue;
     }
     if (obj.type === "user" || obj.type === "assistant") messageCount += 1;
