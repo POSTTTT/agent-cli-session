@@ -188,6 +188,7 @@ export async function listCodexSessions(
       mtime: f.mtime,
       firstUserPrompt: meta.firstUserPrompt,
       aiTitle: meta.uuid, // surfaced as the short id, no auto-title concept
+      customTitle: null, // Codex has no /title equivalent
       // The CLI picker's title — used as the app's default so the two agree.
       threadName: (uuid && threadNames.get(uuid)) || null,
       messageCount: meta.messageCount,

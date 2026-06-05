@@ -41,6 +41,7 @@ export default async function ProjectPage({
                   sessionId={s.sessionId}
                   alias={s.alias}
                   aiTitle={s.aiTitle}
+                  customTitle={s.customTitle}
                   firstUserPrompt={s.firstUserPrompt}
                 />
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/50">

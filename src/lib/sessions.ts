@@ -22,6 +22,9 @@ export type SessionSummary = {
   mtime: number;
   firstUserPrompt: string | null;
   aiTitle: string | null;
+  // User-set title from the `/rename` CLI command, stored in the session JSONL
+  // as { type: "custom-title", customTitle }. Ranks above the AI auto-title.
+  customTitle: string | null;
   messageCount: number;
   model: string | null;
   gitBranch: string | null;
@@ -188,6 +191,7 @@ export async function listSessions(projectId: string): Promise<SessionSummary[]>
 async function summarizeSession(filePath: string) {
   let firstUserPrompt: string | null = null;
   let aiTitle: string | null = null;
+  let customTitle: string | null = null;
   let messageCount = 0;
   let model: string | null = null;
   let gitBranch: string | null = null;
@@ -212,6 +216,10 @@ async function summarizeSession(filePath: string) {
       aiTitle = obj.aiTitle;
       continue;
     }
+    if (obj.type === "custom-title" && typeof obj.customTitle === "string") {
+      customTitle = obj.customTitle;
+      continue;
+    }
     if (obj.type === "user" || obj.type === "assistant") messageCount += 1;
     if (!cwd && obj.cwd) cwd = obj.cwd;
     if (!gitBranch && obj.gitBranch) gitBranch = obj.gitBranch;
@@ -229,6 +237,7 @@ async function summarizeSession(filePath: string) {
   return {
     firstUserPrompt,
     aiTitle,
+    customTitle,
     messageCount,
     model,
     gitBranch,

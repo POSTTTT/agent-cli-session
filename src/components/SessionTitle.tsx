@@ -14,6 +14,7 @@ export function SessionTitle({
   sessionId,
   alias,
   aiTitle,
+  customTitle,
   firstUserPrompt,
   basePath = "/p",
   kind = "claude",
@@ -22,6 +23,7 @@ export function SessionTitle({
   sessionId: string;
   alias: string | null;
   aiTitle?: string | null;
+  customTitle?: string | null;
   firstUserPrompt: string | null;
   basePath?: string;
   kind?: "claude" | "codex" | "gemini";
@@ -32,14 +34,16 @@ export function SessionTitle({
   const router = useRouter();
 
   const displayed =
-    alias ?? aiTitle ?? firstUserPrompt ?? "(no title)";
-  const source: "alias" | "ai" | "prompt" | "none" = alias
+    alias ?? customTitle ?? aiTitle ?? firstUserPrompt ?? "(no title)";
+  const source: "alias" | "custom" | "ai" | "prompt" | "none" = alias
     ? "alias"
-    : aiTitle
-      ? "ai"
-      : firstUserPrompt
-        ? "prompt"
-        : "none";
+    : customTitle
+      ? "custom"
+      : aiTitle
+        ? "ai"
+        : firstUserPrompt
+          ? "prompt"
+          : "none";
   const href = `${basePath}/${encodeURIComponent(projectId)}/s/${sessionId}`;
 
   const save = (next: string) => {
@@ -101,6 +105,11 @@ export function SessionTitle({
         {source === "alias" && (
           <span className="mr-2 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">
             named
+          </span>
+        )}
+        {source === "custom" && (
+          <span className="mr-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-200">
+            rename
           </span>
         )}
         {source === "ai" && (

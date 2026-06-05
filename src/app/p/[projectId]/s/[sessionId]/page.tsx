@@ -21,6 +21,7 @@ export default async function SessionPage({
   const alias = getAlias(aliases, decoded, sessionId);
   const firstUserPrompt = findFirstUserPrompt(entries);
   const aiTitle = findAiTitle(entries);
+  const customTitle = findCustomTitle(entries);
 
   return (
     <div>
@@ -36,6 +37,7 @@ export default async function SessionPage({
           sessionId={sessionId}
           alias={alias}
           aiTitle={aiTitle}
+          customTitle={customTitle}
           firstUserPrompt={firstUserPrompt}
         />
       </div>
@@ -52,6 +54,19 @@ function findAiTitle(entries: { type: string; raw: unknown }[]): string | null {
     if (e.type === "ai-title") {
       const raw = e.raw as { aiTitle?: string };
       if (typeof raw.aiTitle === "string") last = raw.aiTitle;
+    }
+  }
+  return last;
+}
+
+function findCustomTitle(
+  entries: { type: string; raw: unknown }[],
+): string | null {
+  let last: string | null = null;
+  for (const e of entries) {
+    if (e.type === "custom-title") {
+      const raw = e.raw as { customTitle?: string };
+      if (typeof raw.customTitle === "string") last = raw.customTitle;
     }
   }
   return last;

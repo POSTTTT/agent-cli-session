@@ -43,14 +43,15 @@ export async function setAlias(
     map[k] = trimmed;
   }
   await writeMap(map);
-  // Also mirror to the .jsonl so Claude Code's /resume picker shows the
-  // same title. We append a new ai-title line — the readers (us and
-  // Claude Code) both take the latest occurrence, so this overrides any
-  // auto-generated title without rewriting the file.
-  await appendAiTitle(projectId, sessionId, trimmed);
+  // Also mirror to the .jsonl so Claude Code's /resume picker shows the same
+  // title. We append a custom-title line — the exact entry the CLI's `/rename`
+  // writes — so the CLI picks it up. Both readers take the latest occurrence,
+  // so this overrides any earlier title without rewriting the file. Skip the
+  // mirror when clearing, so we never write a blank title into the JSONL.
+  if (trimmed !== "") await appendCustomTitle(projectId, sessionId, trimmed);
 }
 
-async function appendAiTitle(
+async function appendCustomTitle(
   projectId: string,
   sessionId: string,
   title: string,
@@ -62,7 +63,8 @@ async function appendAiTitle(
     return; // session file doesn't exist; nothing to do
   }
   const line =
-    JSON.stringify({ type: "ai-title", aiTitle: title, sessionId }) + "\n";
+    JSON.stringify({ type: "custom-title", customTitle: title, sessionId }) +
+    "\n";
   try {
     await fs.appendFile(file, line, "utf8");
   } catch {
