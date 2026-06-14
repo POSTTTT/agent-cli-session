@@ -126,11 +126,11 @@ export function ProjectsTree({
         <div className="col-span-1"></div>
       </div>
       <div>
-        {[...tree.children.values()]
-          .sort(sortNode)
-          .map((c) => (
+        {[...tree.children.entries()]
+          .sort(([, a], [, b]) => sortNode(a, b))
+          .map(([key, c]) => (
             <TreeRow
-              key={c.fullPath}
+              key={key}
               node={c}
               depth={0}
               expanded={expanded}
@@ -249,11 +249,11 @@ function TreeRow({
         </div>
       </div>
       {isOpen &&
-        [...node.children.values()]
-          .sort(sortNode)
-          .map((c) => (
+        [...node.children.entries()]
+          .sort(([, a], [, b]) => sortNode(a, b))
+          .map(([key, c]) => (
             <TreeRow
-              key={c.fullPath}
+              key={key}
               node={c}
               depth={depth + 1}
               expanded={expanded}

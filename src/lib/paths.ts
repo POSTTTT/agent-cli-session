@@ -40,6 +40,16 @@ export function decodeId(id: string): string {
 }
 
 /**
+ * Re-create the folder name Claude derives from a cwd: every non-alphanumeric
+ * char becomes `-`. Lossy (same as Claude), but lets us detect whether a
+ * session's recorded cwd still matches the folder it lives in. A mismatch means
+ * the session file was moved between project folders.
+ */
+export function encodeProjectId(cwd: string): string {
+  return cwd.replace(/[^a-zA-Z0-9]/g, "-");
+}
+
+/**
  * Claude encodes project paths as folder names by replacing path separators
  * and `:` with `-`. There's no lossless inverse, but we can produce a
  * readable approximation by re-introducing `\` after the leading drive letter

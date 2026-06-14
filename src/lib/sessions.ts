@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import path from "node:path";
-import { PROJECTS_DIR, decodeProjectId } from "./paths";
+import { PROJECTS_DIR, decodeProjectId, encodeProjectId } from "./paths";
 import { loadAliases, getAlias } from "./aliases";
 
 export type ProjectSummary = {
@@ -110,10 +110,13 @@ export async function resolveProjectPath(projectId: string): Promise<string> {
   const cached = projectPathCache.get(projectId);
   if (cached && cached.key === key) return cached.path;
 
+  // Only trust a session's cwd if it still matches this folder. A mismatch
+  // means the file was moved here from another project, so its cwd points at
+  // the original location — in that case fall back to the folder slug.
   let resolved = decodeProjectId(projectId);
   for (const { f } of withMtime) {
     const cwd = await readCwdFromFile(path.join(dir, f));
-    if (cwd) {
+    if (cwd && encodeProjectId(cwd) === projectId) {
       resolved = cwd;
       break;
     }
