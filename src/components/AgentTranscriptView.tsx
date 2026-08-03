@@ -87,8 +87,8 @@ function EntryCard({
 }) {
   if (entry.kind === "user") {
     return (
-      <div className="rounded-lg border border-sky-500/20 bg-sky-500/[0.04] p-4">
-        <Label text="User" className="text-sky-300" />
+      <div className="rounded-lg border border-line bg-surface p-4">
+        <Label text="User" className="text-accent" />
         <div className="mt-1 whitespace-pre-wrap text-sm text-white/90">
           {entry.text}
         </div>

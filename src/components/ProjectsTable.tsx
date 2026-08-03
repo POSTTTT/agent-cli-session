@@ -71,9 +71,9 @@ export function ProjectsTable({
   };
 
   return (
-    <div className="mt-6 overflow-hidden rounded-lg border border-white/10">
-      <table className="w-full text-sm">
-        <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/50">
+    <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-surface">
+      <table className="w-full min-w-[46rem] text-[13px]">
+        <thead className="border-b border-line text-left text-[11px] font-medium uppercase tracking-[0.08em] text-faint">
           <tr>
             <Th label="Path" col="path" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <Th label="Sessions" col="sessions" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
@@ -85,35 +85,38 @@ export function ProjectsTable({
         </thead>
         <tbody>
           {sorted.map((p) => (
-            <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
-              <td className="px-4 py-3">
+            <tr
+              key={p.id}
+              className="group border-t border-line transition-colors hover:bg-surface-2"
+            >
+              <td className="px-4 py-2.5">
                 <Link
                   href={`${basePath}/${encodeURIComponent(p.id)}`}
-                  className="font-mono text-xs text-sky-300 hover:underline"
+                  className="font-mono text-xs text-accent hover:underline"
                 >
                   {p.decodedPath}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-right tabular-nums">
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-fg">
                 {p.sessionCount}
               </td>
-              <td className="px-4 py-3 text-right tabular-nums text-white/70">
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">
                 {formatBytes(p.totalBytes)}
               </td>
               <td
-                className="px-4 py-3 text-right tabular-nums text-white/70"
+                className="px-4 py-2.5 text-right font-mono tabular-nums text-muted"
                 title={new Date(p.firstActivity).toLocaleString()}
                 suppressHydrationWarning
               >
                 {formatDuration(Date.now() - p.firstActivity)}
               </td>
               <td
-                className="px-4 py-3 text-right text-white/70"
+                className="px-4 py-2.5 text-right text-muted"
                 suppressHydrationWarning
               >
                 {formatRelative(p.lastModified)}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-4 py-2.5 text-right">
                 <DeleteButton
                   target={`${deletePrefix}${p.id}`}
                   label="Delete"
@@ -124,7 +127,7 @@ export function ProjectsTable({
           ))}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-white/50">
+              <td colSpan={6} className="px-4 py-14 text-center text-muted">
                 {emptyLabel}
               </td>
             </tr>
@@ -153,17 +156,20 @@ function Th({
   const active = sortKey === col;
   return (
     <th
-      className={`px-4 py-3 ${align === "right" ? "text-right" : "text-left"}`}
+      className={`px-4 py-2.5 ${align === "right" ? "text-right" : "text-left"}`}
+      aria-sort={
+        active ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+      }
     >
       <button
         type="button"
         onClick={() => onSort(col)}
-        className={`inline-flex items-center gap-1 hover:text-white ${
-          active ? "text-white" : ""
+        className={`inline-flex items-center gap-1 transition-colors hover:text-fg ${
+          active ? "text-fg" : ""
         }`}
       >
         {label}
-        <span className="text-[10px] opacity-60">
+        <span aria-hidden className="text-[9px] text-accent">
           {active ? (sortDir === "asc" ? "▲" : "▼") : ""}
         </span>
       </button>

@@ -1,18 +1,18 @@
 import { listCodexProjects } from "@/lib/codex";
 import { ProjectsView } from "@/components/ProjectsView";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function CodexProjectsPage() {
   const projects = await listCodexProjects();
+  const sessions = projects.reduce((a, p) => a + p.sessionCount, 0);
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Codex projects</h1>
-      <p className="mt-1 text-sm text-white/60">
-        {projects.length} project{projects.length === 1 ? "" : "s"} ·{" "}
-        {projects.reduce((a, p) => a + p.sessionCount, 0)} sessions · grouped by
-        working directory
-      </p>
+      <PageHeader title="Codex projects">
+        {projects.length} project{projects.length === 1 ? "" : "s"} · {sessions}{" "}
+        session{sessions === 1 ? "" : "s"}, grouped by working directory.
+      </PageHeader>
 
       <ProjectsView
         projects={projects}

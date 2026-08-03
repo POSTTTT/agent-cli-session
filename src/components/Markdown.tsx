@@ -270,7 +270,7 @@ function renderInline(text: string): React.ReactNode[] {
             href={linkMatch[2]}
             target="_blank"
             rel="noreferrer"
-            className="text-sky-300 underline hover:text-sky-200"
+            className="text-accent underline hover:opacity-80"
           >
             {linkMatch[1]}
           </a>,

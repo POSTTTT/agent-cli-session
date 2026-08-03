@@ -300,10 +300,10 @@ const EntryCard = memo(function EntryCard({
   const content = raw.message?.content;
   const tone =
     role === "user"
-      ? "border-sky-500/30 bg-sky-500/5"
+      ? "border-line-strong bg-accent-soft"
       : role === "assistant"
-        ? "border-emerald-500/30 bg-emerald-500/5"
-        : "border-white/10 bg-white/[0.02]";
+        ? "border-line bg-surface"
+        : "border-line bg-bg";
 
   return (
     <div className={`rounded-lg border ${tone} p-3`}>

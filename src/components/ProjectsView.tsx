@@ -34,16 +34,21 @@ export function ProjectsView({
 
   return (
     <div>
-      <div className="mt-4 inline-flex rounded-md border border-white/10 bg-white/[0.03] p-0.5 text-xs">
+      <div
+        role="group"
+        aria-label="Layout"
+        className="inline-flex rounded-lg border border-line bg-surface p-1 text-[13px]"
+      >
         {(["table", "tree"] as View[]).map((v) => (
           <button
             key={v}
             type="button"
             onClick={() => change(v)}
-            className={`rounded px-3 py-1 capitalize ${
+            aria-pressed={view === v}
+            className={`rounded-md px-3 py-1 capitalize transition-colors ${
               view === v
-                ? "bg-white/10 text-white"
-                : "text-white/60 hover:text-white"
+                ? "bg-surface-2 text-fg ring-1 ring-line-strong"
+                : "text-faint hover:text-muted"
             }`}
           >
             {v}

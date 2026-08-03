@@ -28,9 +28,9 @@ export function DeleteButton({
           router.refresh();
         });
       }}
-      className="shrink-0 rounded-md border border-red-500/30 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+      className="shrink-0 rounded-md border border-line px-2 py-1 text-xs text-faint transition-colors hover:border-danger hover:text-danger active:translate-y-px disabled:opacity-50"
     >
-      {pending ? "…" : label}
+      {pending ? "Deleting…" : label}
     </button>
   );
 }

@@ -4,193 +4,157 @@
 
 /*
  * ─────────────────────────────────────────────────────────────
- *  THEME: Developer Brutalism / Terminal Aesthetic (dark)
+ *  THEME — neutral dark, one accent
  * ─────────────────────────────────────────────────────────────
- *  Phosphor-on-black palette, monospace everything, square hard
- *  edges, visible borders, no blur, subtle CRT scanlines.
+ *  Tokens live here; tailwind.config.ts maps them to utility
+ *  names (bg-surface, border-line, text-muted, …) so components
+ *  never hardcode a colour. Change a value here, the whole app
+ *  follows.
  *
- *  Most component styling is inline Tailwind utility classes.
- *  Rules below live OUTSIDE @layer, so per the CSS cascade they
- *  beat Tailwind's @layer utilities regardless of specificity —
- *  letting us re-skin the whole app from one place.
+ *  Sans = chrome and prose. Mono = paths, ids, numbers.
  * ─────────────────────────────────────────────────────────────
  */
 
 :root {
   color-scheme: dark;
 
-  /* Warm amber monochrome — easiest on the eyes for long sessions:
-     low blue-light, desaturated accent, lifted (non-pure-black) bg. */
-  --term-bg: #14110d;
-  --term-bg-raised: #1b1712;
-  --term-fg: #b3a482; /* warm cream, dimmed so long-form text isn't glaring */
-  --term-fg-dim: #7d7059;
-  --term-green: #e0a23c; /* primary accent (amber) — name kept for reuse */
-  --term-amber: #f0b84a; /* active/selected accent */
-  --term-border: #332a1c;
-  --term-border-bright: #4a3c25;
+  /* Surfaces — cool neutral, never pure black. */
+  --bg: #0b0b0d;
+  --surface: #121214;
+  --surface-2: #1a1a1e;
 
-  --term-font: "JetBrains Mono", "Cascadia Code", "Fira Code",
-    ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  /* Hairlines. */
+  --line: #232327;
+  --line-strong: #32323a;
+
+  /* Text. */
+  --fg: #ececee;
+  --muted: #9d9da6;
+  --faint: #6a6a74;
+
+  /* Single accent — warm amber, desaturated so it sits in the neutrals
+     instead of shouting. Everything interactive uses this and nothing else. */
+  --accent: #e5a44c;
+  --accent-soft: rgba(229, 164, 76, 0.12);
+  --danger: #e07a6b;
+
+  /* Monospace everywhere — sans and mono resolve to the same stack.
+     Point --font-sans at a proportional stack if you ever want the split. */
+  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", ui-monospace,
+    "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-sans: var(--font-mono);
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: var(--term-bg);
-  color: var(--term-fg);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Monospace, everywhere. The single biggest "terminal" signal. */
-* {
-  font-family: var(--term-font);
-  /* Brutalism: hard square corners, kill every rounded-* utility. */
-  border-radius: 0 !important;
-  /* Flat: no soft glows, no frosted glass. */
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  letter-spacing: 0;
-}
-
-/* Unify the soft white/10 dividers into hard phosphor-tinted rules. */
-[class*="border"] {
-  border-color: var(--term-border) !important;
-}
-
-/* No body-text glow — keeps long-form reading crisp and low-strain. */
-
+/* Headings: balanced wrapping, no orphans. Tracking stays neutral —
+   monospace is already evenly spaced, negative tracking just crowds it. */
 h1,
 h2,
 h3 {
-  color: var(--term-green) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 4px rgba(224, 162, 60, 0.18);
+  letter-spacing: 0;
+  text-wrap: balance;
 }
 
-/* Re-map the app's blue accent TEXT to warm amber. Note: only text is
-   remapped — background utilities keep their original alpha so subtle
-   tints (e.g. bg-amber-500/5 on tool cards) stay subtle, not solid. */
-[class*="text-sky"],
-[class*="text-indigo"] {
-  color: var(--term-amber) !important;
+p {
+  text-wrap: pretty;
 }
 
-[class*="text-amber"] {
-  color: var(--term-amber) !important;
-}
-
-/* Knock pure white down to warm cream. ~= matches only the exact
-   "text-white" token, so dimmed "text-white/70" etc. keep their alpha. */
-[class~="text-white"] {
-  color: var(--term-fg) !important;
-}
-
-a {
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-}
-
-/* Inputs / buttons: hard outlines, square, focus burns green. */
-input,
-textarea,
-select,
-button {
-  font-family: var(--term-font);
+/* One visible focus ring for every interactive element. Accessibility
+   baseline — do not remove per-component. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 input,
 textarea,
 select {
-  border: 1px solid var(--term-border-bright) !important;
-  background-color: #06080680 !important;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none !important;
-  border-color: var(--term-green) !important;
-  box-shadow: 0 0 0 1px var(--term-green) !important;
+  font-family: inherit;
 }
 
 ::placeholder {
-  color: var(--term-fg-dim) !important;
+  color: var(--faint);
 }
 
-/* Amber text selection. */
 ::selection {
-  background: var(--term-green);
-  color: #14110d;
+  background: var(--accent);
+  color: #14100a;
 }
 
-/* Terminal block caret. */
-* {
-  caret-color: var(--term-green);
-}
-
-/* Brutalist scrollbar: square, no padding, hard colors. */
+/* Scrollbars matched to the surface palette. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--term-border-bright) var(--term-bg);
+  scrollbar-color: var(--line-strong) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-track {
-  background: var(--term-bg);
+  background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--term-border-bright);
-  border: 2px solid var(--term-bg);
+  background: var(--line-strong);
+  border: 3px solid var(--bg);
+  border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--term-green);
+  background: var(--faint);
 }
 
-/* Subtle CRT scanline overlay across the whole viewport.
-   NOTE: no mix-blend-mode — blend modes force a full-page re-composite on
-   every paint and make scrolling janky. The darkness is baked into the
-   gradient's rgba stops instead, so this fixed layer stays on its own GPU
-   compositor layer and scrolling stays smooth. */
-body::before {
+/* Ambient grain — breaks up the flat fill without costing a repaint.
+   Fixed layer, own compositor, pointer-events off. */
+body::after {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 50;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.06) 3px,
-    rgba(0, 0, 0, 0.06) 3px
-  );
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
-    display: none;
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-/* Blinking block cursor for the shell-prompt brand. */
-.term-cursor {
-  display: inline-block;
-  margin-left: 2px;
-  color: var(--term-green);
-  text-shadow: 0 0 6px rgba(224, 162, 60, 0.5);
-  animation: term-blink 1.1s steps(1) infinite;
+/* Keyboard-only skip link, visible on focus. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
 }
-
-@keyframes term-blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  50.01%,
-  100% {
-    opacity: 0;
-  }
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
 }

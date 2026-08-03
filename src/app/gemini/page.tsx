@@ -1,17 +1,19 @@
 import { listGeminiProjects } from "@/lib/gemini";
 import { ProjectsView } from "@/components/ProjectsView";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeminiProjectsPage() {
   const projects = await listGeminiProjects();
+  const sessions = projects.reduce((a, p) => a + p.sessionCount, 0);
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Gemini projects</h1>
-      <p className="mt-1 text-sm text-white/60">
-        {projects.length} project{projects.length === 1 ? "" : "s"} ·{" "}
-        {projects.reduce((a, p) => a + p.sessionCount, 0)} sessions
-      </p>
+      <PageHeader title="Gemini projects">
+        {projects.length} project{projects.length === 1 ? "" : "s"} · {sessions}{" "}
+        session{sessions === 1 ? "" : "s"} recorded in{" "}
+        <span className="font-mono text-fg">~/.gemini/tmp</span>.
+      </PageHeader>
 
       <ProjectsView
         projects={projects}

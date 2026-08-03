@@ -1,6 +1,12 @@
-import Link from "next/link";
 import { searchGeminiSessions, resolveGeminiProjectPath } from "@/lib/gemini";
 import { formatRelative } from "@/lib/format";
+import {
+  EmptyState,
+  PageHeader,
+  ResultList,
+  ResultRow,
+  SearchForm,
+} from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -19,59 +25,51 @@ export default async function GeminiSearchPage({
   );
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Search Gemini</h1>
-      <p className="mt-1 text-sm text-white/60">
-        Looks through every line of every Gemini chat log (
-        <span className="font-mono text-white/80">.jsonl</span> files in{" "}
-        <span className="font-mono text-white/80">~/.gemini/tmp</span>).
-        Case-insensitive substring match — works for prompt text, model
-        replies, thoughts, tool calls, file paths, anything stored in the
-        transcript. Each result links to the session that contains the match.
-      </p>
-      <form action="/gemini/search" className="mt-4 flex gap-2">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search Gemini session contents…"
-          className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm outline-none focus:border-sky-400"
-          autoFocus
-        />
-        <button
-          type="submit"
-          className="rounded-lg border border-sky-500/40 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/25"
-        >
-          Search
-        </button>
-      </form>
+      <PageHeader title="Search Gemini">
+        Case-insensitive substring match across every line of every{" "}
+        <span className="font-mono text-fg">.jsonl</span> in{" "}
+        <span className="font-mono text-fg">~/.gemini/tmp</span> — prompts,
+        model replies, thoughts, tool calls, file paths. Each result links to
+        the session that contains the match.
+      </PageHeader>
+
+      <SearchForm
+        action="/gemini/search"
+        q={q}
+        placeholder="Search Gemini session contents…"
+      />
 
       {q && (
-        <p className="mt-3 text-sm text-white/60">
+        <p className="mt-4 text-[13px] text-muted">
           {results.length} result{results.length === 1 ? "" : "s"} for{" "}
-          <span className="font-mono">{q}</span>
+          <span className="font-mono text-fg">{q}</span>
         </p>
       )}
 
-      <div className="mt-4 space-y-2">
-        {results.map((r) => (
-          <Link
-            key={`${r.projectId}/${r.sessionId}`}
-            href={`/gemini/p/${encodeURIComponent(r.projectId)}/s/${r.sessionId}`}
-            className="block rounded-lg border border-white/10 bg-white/[0.02] p-3 hover:border-white/20"
-          >
-            <div className="font-mono text-xs text-sky-300">
-              {pathMap.get(r.projectId) ?? r.projectId}
-            </div>
-            <div
-              className="mt-1 font-mono text-[10px] text-white/40"
-              suppressHydrationWarning
-            >
-              {formatRelative(r.mtime)}
-            </div>
-            <div className="mt-1 truncate text-sm text-white/80">
-              …{r.snippet}…
-            </div>
-          </Link>
-        ))}
+      <div className="mt-4">
+        {results.length > 0 ? (
+          <ResultList>
+            {results.map((r) => (
+              <ResultRow
+                key={`${r.projectId}/${r.sessionId}`}
+                href={`/gemini/p/${encodeURIComponent(r.projectId)}/s/${r.sessionId}`}
+                path={pathMap.get(r.projectId) ?? r.projectId}
+                meta={formatRelative(r.mtime)}
+                snippet={r.snippet}
+              />
+            ))}
+          </ResultList>
+        ) : q ? (
+          <EmptyState
+            title={`Nothing matched "${q}".`}
+            hint="Try a shorter fragment — matching is literal, not fuzzy."
+          />
+        ) : (
+          <EmptyState
+            title="Type a query to search your Gemini logs."
+            hint="A file path, a prompt fragment, or a tool name all work."
+          />
+        )}
       </div>
     </div>
   );

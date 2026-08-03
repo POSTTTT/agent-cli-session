@@ -78,7 +78,7 @@ export function SessionTitle({
             }
           }}
           placeholder="Custom name (empty = use first prompt)"
-          className="flex-1 rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm outline-none focus:border-sky-400"
+          className="flex-1 rounded-md border border-line-strong bg-bg px-2 py-1 text-sm outline-none focus:border-accent"
         />
         <button
           type="button"
@@ -106,10 +106,10 @@ export function SessionTitle({
     <div className="flex items-center gap-2">
       <Link
         href={href}
-        className="block min-w-0 flex-1 truncate text-sm font-medium text-sky-300 hover:underline"
+        className="block min-w-0 flex-1 truncate text-sm font-medium text-accent hover:underline"
       >
         {source === "named" && (
-          <span className="mr-2 rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">
+          <span className="mr-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-accent">
             named
           </span>
         )}

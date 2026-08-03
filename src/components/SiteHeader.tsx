@@ -73,30 +73,27 @@ export function SiteHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#100d09]">
-      {/* Row 1: brand */}
-      <div className="mx-auto flex max-w-7xl items-center px-6 py-3">
-        <Link href="/" className="flex items-center gap-2.5">
-          <TerminalIcon />
-          <span className="text-lg font-semibold tracking-tight">
-            <span className="text-amber-400">~/cli-sessions</span>
-            <span className="text-white/40"> $ </span>
-            <span>local-cli-sessions</span>
-            <span className="term-cursor" aria-hidden>
-              █
-            </span>
+    // Solid, not translucent: the token colours are var()-based, so Tailwind
+    // alpha modifiers (bg-bg/90) silently compile to nothing.
+    <header className="sticky top-0 z-30 border-b border-line bg-bg">
+      {/* Row 1: brand left, tool switcher right. */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 pb-3 pt-4">
+        <Link
+          href="/"
+          className="flex items-baseline gap-2 text-[15px] font-semibold text-fg transition-opacity hover:opacity-80"
+        >
+          <span aria-hidden className="text-accent">
+            $
           </span>
+          cli-sessions
         </Link>
-      </div>
 
-      {/* Row 2: tool toggle */}
-      <div className="flex justify-center pb-1">
-        <div className="relative inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+        <div className="relative inline-flex items-center gap-1 rounded-lg border border-line bg-surface p-1">
           {/* Sliding highlight behind the active tab. */}
           {thumb && (
             <span
               aria-hidden
-              className="pointer-events-none absolute top-1 bottom-1 bg-[#e0a23c] transition-[left,width] duration-300 ease-out"
+              className="pointer-events-none absolute bottom-1 top-1 rounded-md bg-surface-2 ring-1 ring-line-strong transition-[left,width] duration-300 ease-out"
               style={{ left: thumb.left, width: thumb.width }}
             />
           )}
@@ -106,14 +103,15 @@ export function SiteHeader() {
               <Link
                 key={t.key}
                 href={t.href}
+                aria-current={active ? "page" : undefined}
                 ref={(el) => {
                   tabRefs.current[i] = el;
                 }}
-                className={`relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${
-                  active ? "text-black" : "text-white/70 hover:text-white"
+                className={`relative z-10 inline-flex items-center gap-2 rounded-md px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  active ? "text-fg" : "text-faint hover:text-muted"
                 }`}
               >
-                <BrandMark src={t.logo} alt={t.label} />
+                <BrandMark src={t.logo} alt="" dim={!active} />
                 {t.label}
               </Link>
             );
@@ -121,24 +119,26 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Row 3: section nav */}
-      <nav className="relative flex justify-center gap-8 px-6">
+      {/* Row 2: section nav, left-aligned under the brand. */}
+      <nav
+        aria-label="Sections"
+        className="relative mx-auto flex max-w-7xl gap-6 px-6"
+      >
         {sub.map((s, i) => {
           const active = s.key === section;
           return (
             <Link
               key={s.key}
               href={s.href}
+              aria-current={active ? "page" : undefined}
               ref={(el) => {
                 navRefs.current[i] = el;
               }}
-              className={`relative py-2 text-sm font-semibold uppercase tracking-wide transition-colors ${
-                active
-                  ? "text-amber-400"
-                  : "text-sky-300/70 hover:text-sky-200"
+              className={`relative -mb-px border-b-2 border-transparent py-2.5 text-[13px] font-medium transition-colors ${
+                active ? "text-fg" : "text-faint hover:text-muted"
               }`}
             >
-              {active ? `[ ${s.label} ]` : s.label}
+              {s.label}
             </Link>
           );
         })}
@@ -146,7 +146,7 @@ export function SiteHeader() {
         {underline && (
           <span
             aria-hidden
-            className="pointer-events-none absolute bottom-0 h-0.5 bg-[#e0a23c] transition-[left,width] duration-300 ease-out"
+            className="pointer-events-none absolute bottom-0 h-0.5 bg-accent transition-[left,width] duration-300 ease-out"
             style={{ left: underline.left, width: underline.width }}
           />
         )}
@@ -155,36 +155,27 @@ export function SiteHeader() {
   );
 }
 
-function TerminalIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#e0a23c"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M4 17l6-5-6-5" />
-      <path d="M12 19h8" />
-    </svg>
-  );
-}
-
-/** Tool brand logo (served from /public). */
-function BrandMark({ src, alt }: { src: string; alt: string }) {
+/** Tool brand logo (served from /public). Decorative — the label names it. */
+function BrandMark({
+  src,
+  alt,
+  dim,
+}: {
+  src: string;
+  alt: string;
+  dim: boolean;
+}) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
       src={src}
       alt={alt}
-      width={18}
-      height={18}
-      className="h-[18px] w-[18px] object-contain"
+      width={16}
+      height={16}
+      aria-hidden={alt === "" ? true : undefined}
+      className={`h-4 w-4 object-contain transition-opacity ${
+        dim ? "opacity-50" : "opacity-100"
+      }`}
     />
   );
 }
-
