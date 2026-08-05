@@ -1,13 +1,14 @@
 # claude-code-sessions
 
-A local web app for browsing, searching, and managing the session logs that
-pile up from your coding agents — **Claude Code** (`~/.claude/projects/`),
-**Codex** (`~/.codex/sessions/`), and **Gemini CLI** (`~/.gemini/tmp/`).
-Everything runs on your machine. No data leaves your computer; no API calls
-are made.
+A local web app for browsing, searching, and managing the session logs your
+coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
+(`~/.codex/sessions/`), and **Gemini CLI** (`~/.gemini/tmp/`).
 
-The header has three tabs — **Claude**, **Codex**, and **Gemini** — each with
-the same Projects / Search / Stats functionality.
+Everything runs on your machine. No data leaves your computer, and no API calls
+are made. Works on macOS, Linux, and Windows.
+
+The header has three tabs — **Claude**, **Codex**, **Gemini** — each with the
+same Projects / Search / Stats pages.
 
 ---
 
@@ -15,98 +16,88 @@ the same Projects / Search / Stats functionality.
 
 ### Browse
 
-- **Projects page (`/`)** — every folder under `~/.claude/projects/`, with the
-  *real* directory path (resolved by reading the `cwd` field inside each
-  session, not the lossy dash-encoded folder name). Two views, toggled with a
-  pill at the top of the page:
-  - **Table** — sortable columns: Path, Sessions, Size, Age, Last activity.
-    Click any column header to sort; click again to flip direction.
-  - **Tree** — projects nested under their parent directories. Single-child
-    folder chains are collapsed visually (`/Users/me/Desktop/GitHub` becomes
-    one row instead of three; likewise `C:\Users\me\OneDrive` on Windows). Folders show aggregated session count, size,
-    and most recent activity.
-  - Your view choice is remembered in `localStorage`.
-- **Sessions page (`/p/[projectId]`)** — every session in one project. Each
-  row shows the title (alias → ai-title → first user prompt), message count,
-  model used, git branch, total input/output tokens, file size, and the
-  session UUID.
-- **Transcript viewer (`/p/[projectId]/s/[sessionId]`)** — renders the JSONL
-  as readable messages.
-  - Markdown formatting (bold, italic, lists, fenced code blocks, inline
-    code, links).
-  - Slash commands (`/clear`, `/model`, etc.) and their stdout are merged
-    into a single compact block, terminal-style.
-  - Tool calls are merged with their matching tool results in one card. Long
-    results are collapsed by default with a `▶` toggle and a one-line preview.
-  - "Thinking" blocks are collapsible.
-  - Filter pills: **messages** (default — hides meta/tool-result chatter),
-    **tools** (only entries that involve a tool call), **all** (raw).
-  - Sticky page header + sticky filter bar so navigation stays accessible in
-    long sessions.
-  - Floating ↑/↓ buttons to jump to top/bottom.
+**Projects (`/`)** lists every project folder with its *real* directory path,
+resolved by reading the `cwd` recorded inside each session rather than trusting
+the lossy dash-encoded folder name. Two views, toggled by a pill at the top and
+remembered in `localStorage`:
+
+- **Table** — sortable by path, sessions, size, age, or last activity. Click a
+  header to sort, click again to flip direction.
+- **Tree** — projects nested under their parent directories, with aggregated
+  session count, size, and most recent activity per folder. Single-child chains
+  collapse into one row, so `/Users/me/Desktop/GitHub` doesn't cost three lines.
+  Separators follow the logs themselves, so Windows paths keep their
+  backslashes even when viewed from another OS.
+
+**Sessions (`/p/[projectId]`)** lists a project's sessions with title (alias →
+ai-title → first user prompt), message count, model, git branch, input/output
+tokens, file size, and session UUID.
+
+**Transcript (`/p/[projectId]/s/[sessionId]`)** renders the JSONL as readable
+messages:
+
+- Markdown formatting — bold, italic, lists, fenced and inline code, links.
+- Slash commands (`/clear`, `/model`, …) merged with their stdout into one
+  compact terminal-style block.
+- Tool calls merged with their matching results in a single card. Long results
+  collapse behind a `▶` toggle with a one-line preview.
+- Collapsible "thinking" blocks.
+- Filter pills: **messages** (default, hides meta and tool-result chatter),
+  **tools** (anything involving a tool call), **all** (raw).
+- Sticky header and filter bar, plus floating ↑/↓ buttons, so long sessions
+  stay navigable.
 
 ### Search (`/search`)
 
-Case-insensitive substring scan across every line of every `.jsonl` in
-`~/.claude/projects/`. Matches anywhere: user prompts, assistant replies,
-tool names, file paths, error messages, session UUIDs, git branches. Each
-result links to the matching session.
+Case-insensitive substring scan across every line of every `.jsonl`. It matches
+anywhere — user prompts, assistant replies, tool names, file paths, error
+messages, session UUIDs, git branches — and each hit links to its session.
 
 ### Stats (`/stats`)
 
-Five summary tiles: projects, sessions, total disk size, total input tokens,
-total output tokens — aggregated across every session log on disk.
+Five summary tiles aggregated across every session log on disk: projects,
+sessions, total size, total input tokens, total output tokens.
 
 ### Manage
 
-- **Rename a session** — give any session a custom display name.
-  - Stored in `~/.claude/projects/_aliases.json` (a sidecar file the app
-    owns; Claude Code ignores it).
-  - **Also mirrored into the `.jsonl`** as a new `ai-title` line, so
-    Claude Code's terminal `/resume` picker shows the same name. The
-    `<uuid>.jsonl` filename and the session UUID are never changed —
-    Claude Code's internal references stay intact.
-  - Click **Rename** next to any session title to edit inline. Empty name
-    removes the alias and lets the title fall back to the auto-generated
-    one.
-- **Delete a session or whole project** — confirmation prompt first, then
-  `fs.rm` with retries (handles transient Windows file locks from AV /
-  OneDrive sync).
+**Rename** gives any session a custom display name. Click **Rename** beside a
+title to edit inline; an empty name clears the alias and falls back to the
+auto-generated title. The name is stored in a sidecar
+(`~/.claude/projects/_aliases.json`, which Claude Code ignores) *and* mirrored
+into the `.jsonl` as a new `ai-title` line, so Claude Code's `/resume` picker
+shows the same name. The filename and session UUID are never changed.
+
+**Delete** removes a session or a whole project after a confirmation dialog
+showing the full path. It uses `fs.rm` with retries, which absorbs the
+transient file locks Windows AV and OneDrive sync tend to produce.
 
 ### Codex tab (`/codex`)
 
-The **Codex** tab mirrors every feature above for OpenAI Codex sessions read
-from `~/.codex/sessions/`. A few format differences are handled transparently:
+Mirrors every feature above for Codex sessions in `~/.codex/sessions/`, handling
+the format differences transparently:
 
-- Codex stores sessions in a flat date tree
-  (`sessions/YYYY/MM/DD/rollout-*.jsonl`), not per-project folders, so sessions
-  are **grouped into projects by their real `cwd`** (read from each rollout's
-  `session_meta` line).
-- The transcript viewer understands Codex's event stream: user messages, agent
-  replies (markdown), collapsible reasoning, and `function_call` cards merged
-  with their output. Same **messages / tools / all** filter pills.
-- **Rename** is stored in a sidecar (`~/.codex/sessions/_codex_aliases.json`).
-  Codex has no `/resume` title to mirror into, so nothing is written back into
-  the rollout `.jsonl`.
-- Stats and search work the same, scoped to `~/.codex/sessions/`.
+- Codex writes a flat date tree (`sessions/YYYY/MM/DD/rollout-*.jsonl`) rather
+  than per-project folders, so sessions are grouped into projects by their real
+  `cwd`, read from each rollout's `session_meta` line.
+- The viewer understands Codex's event stream: user messages, agent replies,
+  collapsible reasoning, and `function_call` cards merged with their output.
+- Renames live in `~/.codex/sessions/_codex_aliases.json`. Codex has no
+  `/resume` title to mirror into, so the rollout `.jsonl` is never modified.
 
 ### Gemini tab (`/gemini`)
 
-The **Gemini** tab does the same for Gemini CLI chats under `~/.gemini/tmp/`:
+Same again for Gemini CLI chats under `~/.gemini/tmp/`:
 
 - Gemini already stores one folder per project
   (`tmp/<project>/chats/session-*.jsonl`), and `~/.gemini/projects.json` maps
-  each folder to its **real working directory** — which the app uses as the
-  project path.
-- Each chat log is an append journal (a header line, `$set` patches, then one
-  JSON object per message). The transcript viewer reconstructs the
-  conversation from it: user prompts, Gemini replies (markdown), collapsible
-  **thoughts** (reasoning), and `toolCalls` merged with their results.
-- **Context tokens** are reported instead of input tokens — Gemini records the
-  cumulative context size per turn, so the app shows the peak rather than a
-  misleading sum. Output tokens are summed normally.
-- **Rename** uses a sidecar (`~/.gemini/_gemini_aliases.json`); nothing is
-  written back into the chat log.
+  each to its real working directory, which the app shows as the project path.
+- Each chat log is an append journal — a header line, `$set` patches, then one
+  object per message. The viewer reconstructs the conversation from it: prompts,
+  replies, collapsible **thoughts**, and `toolCalls` merged with their results.
+- **Context tokens** are shown instead of input tokens. Gemini records
+  cumulative context size per turn, so the app reports the peak rather than a
+  meaningless sum. Output tokens are summed normally.
+- Renames live in `~/.gemini/_gemini_aliases.json`; the chat log is untouched.
 
 ---
 
@@ -114,73 +105,56 @@ The **Gemini** tab does the same for Gemini CLI chats under `~/.gemini/tmp/`:
 
 ### 1. Prerequisites
 
-- **Node.js 20+**. Check with `node -v`.
-- An existing `~/.claude/projects/` directory (it appears the first time you
-  run Claude Code).
+- **Node.js 20+** (`node -v`).
+- At least one agent directory — `~/.claude/projects/`, `~/.codex/sessions/`, or
+  `~/.gemini/tmp/`. Each appears the first time you run that agent. Tabs whose
+  directory is missing simply render empty.
 
 ### 2. Get the code
 
 ```bash
 git clone https://github.com/POSTTTT/claude-code-sessions
 cd claude-code-sessions
-```
-
-### 3. Install dependencies
-
-```bash
 npm install
 ```
 
-> **OneDrive caveat (Windows only).** If you cloned this repo into a OneDrive-synced
-> path like `C:\Users\<you>\OneDrive\Documents\GitHub\…`, `npm install` may
-> hang silently — OneDrive's file-on-demand sync intercepts every small write
-> npm makes. If you see no progress after a couple of minutes:
->
-> 1. Right-click the OneDrive tray icon → **Pause syncing → 2 hours**, then
->    retry `npm install`, **or**
-> 2. Move the repo to a non-synced path (e.g. `C:\dev\claude-code-sessions`)
->    and install there.
+> **OneDrive caveat (Windows only).** If you cloned into a OneDrive-synced path
+> like `C:\Users\<you>\OneDrive\Documents\GitHub\…`, `npm install` may hang
+> silently — file-on-demand sync intercepts every small write npm makes. Either
+> pause syncing for two hours from the tray icon and retry, or move the repo
+> somewhere unsynced such as `C:\dev\claude-code-sessions`.
 
-### 4. Register the launcher (one time)
+### 3. Register the launcher (one time per machine)
 
 ```bash
 npm link
 ```
 
-This installs a global command called `claude-sessions` that points at this
-project's copy. You only need to do this once per machine. (Equivalent
-alternative: `npm install -g .` from the project folder.)
+This installs a global `claude-sessions` command pointing at this copy of the
+project. `npm install -g .` from the project folder does the same thing.
 
-### 5. Launch from anywhere
+### 4. Launch from anywhere
 
 ```bash
 claude-sessions
 ```
 
-That's it — no `cd`, no `npm run`. Open the URL the server prints (defaults
-to <http://localhost:3000>).
+No `cd`, no `npm run`. The server defaults to <http://localhost:3000> and your
+browser opens automatically once it's ready. `Ctrl+C` stops it.
 
-Flags:
+| Command                     | What it does                                             |
+| --------------------------- | -------------------------------------------------------- |
+| `claude-sessions`           | Start the **dev** server + auto-open browser (default)    |
+| `claude-sessions --prod`    | Start the **production** server (requires a prior build)  |
+| `claude-sessions --build`   | Run `next build`, then start the production server        |
+| `claude-sessions --no-open` | Don't open the browser                                    |
+| `claude-sessions --help`    | Show the help and the project path                        |
 
-The browser opens automatically as soon as the server is ready. Pass
-`--no-open` to skip that.
+### 5. Reading from a different directory (optional)
 
-| Command                     | What it does                                            |
-| --------------------------- | ------------------------------------------------------- |
-| `claude-sessions`           | Start the **dev** server + auto-open browser (default)  |
-| `claude-sessions --prod`    | Start the **production** server (requires a prior build) |
-| `claude-sessions --build`   | Run `next build`, then start the production server      |
-| `claude-sessions --no-open` | Don't open the browser                                  |
-| `claude-sessions --help`    | Show the help and the project path                      |
-
-To stop the server: `Ctrl+C` in the terminal where it's running.
-
-### 6. Pointing at a different `.claude` directory (optional)
-
-By default the app reads from `~/.claude/projects/` (Claude),
-`~/.codex/sessions/` (Codex), and `~/.gemini/tmp/` (Gemini). To point at
-different locations, set the `CLAUDE_HOME`, `CODEX_HOME`, and/or `GEMINI_HOME`
-environment variables before starting the server:
+By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`, and
+`~/.gemini/tmp/`. Point it elsewhere with `CLAUDE_HOME`, `CODEX_HOME`, and/or
+`GEMINI_HOME`:
 
 ```bash
 # macOS / Linux
@@ -195,63 +169,27 @@ claude-sessions
 
 ---
 
-## Project layout
-
-```
-bin/
-  claude-sessions.mjs               global launcher (npm bin)
-src/
-  app/
-    page.tsx                          Claude projects list
-    p/[projectId]/page.tsx            sessions in a project
-    p/[projectId]/s/[sessionId]/      session transcript
-    search/page.tsx                   content search
-    stats/page.tsx                    summary tiles
-    codex/                            Codex tab — mirrors the routes above
-    gemini/                           Gemini tab — mirrors the routes above
-      page.tsx                        projects (from ~/.gemini/projects.json)
-      p/[projectId]/page.tsx          sessions in a project
-      p/[projectId]/s/[sessionId]/    session transcript
-      search/page.tsx, stats/page.tsx search + stats
-    actions.ts                        server actions (delete, rename — all tabs)
-    layout.tsx, globals.css           dark theme + <SiteHeader/>
-  components/
-    SiteHeader.tsx                    3-tab header (Claude / Codex / Gemini)
-    ProjectsView.tsx                  table/tree toggle (client, basePath-aware)
-    ProjectsTable.tsx                 sortable table (client)
-    ProjectsTree.tsx                  directory tree (client)
-    SessionTitle.tsx                  inline rename (claude/codex/gemini)
-    DeleteButton.tsx                  delete w/ confirm (client)
-    TranscriptView.tsx                Claude transcript renderer + filters
-    AgentTranscriptView.tsx           shared Codex/Gemini transcript renderer
-    Markdown.tsx                      lightweight markdown renderer
-  lib/
-    paths.ts                          CLAUDE/CODEX/GEMINI_HOME + id encode/decode
-    sessions.ts                       Claude: list/read/search/delete + stats
-    codex.ts                          Codex: list/read/search/delete + stats
-    gemini.ts                         Gemini: list/read/search/delete + stats
-    pathtree.ts                       path → folder tree (+ pathtree.test.mjs)
-    transcript.ts                     shared AgentEntry type
-    aliases.ts                        Claude rename sidecar + ai-title mirror
-    format.ts                         bytes / relative / duration / number
-```
-
 ## Stack
 
 - Next.js 15 (App Router) + React 19
 - TypeScript, Tailwind CSS
-- Server-side filesystem access via Server Actions and one Route Handler
-- No database, no auth — runs locally on `localhost` only
+- Server-side filesystem access via server components and Server Actions
+- No database, no auth — runs on `localhost` only
+
+The path-to-folder-tree logic has a standalone check:
+
+```bash
+node src/lib/pathtree.test.mjs
+```
 
 ## Safety
 
-- **Delete is permanent.** The app uses `fs.rm` to remove the `.jsonl` file
-  (or the whole project folder). A confirmation dialog shows the full path
-  before anything is removed.
-- **Rename never touches the `.jsonl` content** — only appends a single
-  `ai-title` line. Existing entries are preserved.
-- **The app is single-user, no auth.** It expects to be reached on
-  `localhost` only. Don't expose it on a network.
+- **Delete is permanent.** `fs.rm` removes the `.jsonl` file or the whole
+  project folder. The confirmation dialog shows the full path first.
+- **Rename never rewrites existing content** — it appends a single `ai-title`
+  line and leaves every other entry intact.
+- **No auth, single user.** The app expects to be reached on `localhost`.
+  Don't expose it on a network.
 
 ## License
 
