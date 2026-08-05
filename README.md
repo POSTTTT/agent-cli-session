@@ -22,8 +22,8 @@ the same Projects / Search / Stats functionality.
   - **Table** — sortable columns: Path, Sessions, Size, Age, Last activity.
     Click any column header to sort; click again to flip direction.
   - **Tree** — projects nested under their parent directories. Single-child
-    folder chains are collapsed visually (`C:\Users\post9\OneDrive` becomes
-    one row instead of three). Folders show aggregated session count, size,
+    folder chains are collapsed visually (`/Users/me/Desktop/GitHub` becomes
+    one row instead of three; likewise `C:\Users\me\OneDrive` on Windows). Folders show aggregated session count, size,
     and most recent activity.
   - Your view choice is remembered in `localStorage`.
 - **Sessions page (`/p/[projectId]`)** — every session in one project. Each
@@ -120,18 +120,18 @@ The **Gemini** tab does the same for Gemini CLI chats under `~/.gemini/tmp/`:
 
 ### 2. Get the code
 
-```powershell
+```bash
 git clone https://github.com/POSTTTT/claude-code-sessions
 cd claude-code-sessions
 ```
 
 ### 3. Install dependencies
 
-```powershell
+```bash
 npm install
 ```
 
-> **OneDrive caveat (Windows).** If you cloned this repo into a OneDrive-synced
+> **OneDrive caveat (Windows only).** If you cloned this repo into a OneDrive-synced
 > path like `C:\Users\<you>\OneDrive\Documents\GitHub\…`, `npm install` may
 > hang silently — OneDrive's file-on-demand sync intercepts every small write
 > npm makes. If you see no progress after a couple of minutes:
@@ -143,7 +143,7 @@ npm install
 
 ### 4. Register the launcher (one time)
 
-```powershell
+```bash
 npm link
 ```
 
@@ -153,7 +153,7 @@ alternative: `npm install -g .` from the project folder.)
 
 ### 5. Launch from anywhere
 
-```powershell
+```bash
 claude-sessions
 ```
 
@@ -177,15 +177,19 @@ To stop the server: `Ctrl+C` in the terminal where it's running.
 
 ### 6. Pointing at a different `.claude` directory (optional)
 
-By default the app reads from `<homedir>\.claude\projects\` (Claude),
-`<homedir>\.codex\sessions\` (Codex), and `<homedir>\.gemini\tmp\` (Gemini).
-To point at different locations, set the `CLAUDE_HOME`, `CODEX_HOME`, and/or
-`GEMINI_HOME` environment variables before starting the server:
+By default the app reads from `~/.claude/projects/` (Claude),
+`~/.codex/sessions/` (Codex), and `~/.gemini/tmp/` (Gemini). To point at
+different locations, set the `CLAUDE_HOME`, `CODEX_HOME`, and/or `GEMINI_HOME`
+environment variables before starting the server:
+
+```bash
+# macOS / Linux
+CLAUDE_HOME=/Volumes/backups/.claude claude-sessions
+```
 
 ```powershell
+# Windows
 $env:CLAUDE_HOME = "D:\backups\.claude"
-$env:CODEX_HOME = "D:\backups\.codex"
-$env:GEMINI_HOME = "D:\backups\.gemini"
 claude-sessions
 ```
 
@@ -226,6 +230,7 @@ src/
     sessions.ts                       Claude: list/read/search/delete + stats
     codex.ts                          Codex: list/read/search/delete + stats
     gemini.ts                         Gemini: list/read/search/delete + stats
+    pathtree.ts                       path → folder tree (+ pathtree.test.mjs)
     transcript.ts                     shared AgentEntry type
     aliases.ts                        Claude rename sidecar + ai-title mirror
     format.ts                         bytes / relative / duration / number
