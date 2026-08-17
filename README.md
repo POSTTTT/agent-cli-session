@@ -2,13 +2,14 @@
 
 A local web app for browsing, searching, and managing the session logs your
 coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
-(`~/.codex/sessions/`), and **Gemini CLI** (`~/.gemini/tmp/`).
+(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), and **opencode**
+(`~/.local/share/opencode/opencode.db`).
 
 Everything runs on your machine. No data leaves your computer, and no API calls
 are made. Works on macOS, Linux, and Windows.
 
-The header has three tabs — **Claude**, **Codex**, **Gemini** — each with the
-same Projects / Search / Stats pages.
+The header has four tabs — **Claude**, **Codex**, **Gemini**, **opencode** —
+each with the same Projects / Search / Stats pages.
 
 ---
 
@@ -99,6 +100,27 @@ Same again for Gemini CLI chats under `~/.gemini/tmp/`:
   meaningless sum. Output tokens are summed normally.
 - Renames live in `~/.gemini/_gemini_aliases.json`; the chat log is untouched.
 
+### opencode tab (`/opencode`)
+
+opencode keeps no log files at all — everything lives in one SQLite database at
+`~/.local/share/opencode/opencode.db`, read here through Node's built-in
+`node:sqlite` (no extra dependency):
+
+- Recent opencode versions file every session under a single `global` project
+  whose worktree is `/`, so that table is useless for grouping. Projects are
+  grouped by each session's recorded `directory` instead, which is the real
+  working directory.
+- A session is a `session` row, a turn is a `message` row, and every text /
+  reasoning / tool block is a `part` row holding JSON. The viewer replays them
+  in order: prompts, replies, collapsible reasoning, and tool calls merged with
+  their output.
+- **Size** is the stored JSON weight of a session's messages and parts, since
+  there is no file to measure. Token counts come from the session row.
+- opencode auto-titles sessions and its own `/rename` overwrites that same
+  field, so **Rename** writes straight to `session.title` — the change shows up
+  in the opencode TUI too. Deleting a session or project deletes those rows;
+  messages and parts cascade with them.
+
 ---
 
 ## Setup
@@ -106,9 +128,10 @@ Same again for Gemini CLI chats under `~/.gemini/tmp/`:
 ### 1. Prerequisites
 
 - **Node.js 20+** (`node -v`).
-- At least one agent directory — `~/.claude/projects/`, `~/.codex/sessions/`, or
-  `~/.gemini/tmp/`. Each appears the first time you run that agent. Tabs whose
-  directory is missing simply render empty.
+- At least one agent's storage — `~/.claude/projects/`, `~/.codex/sessions/`,
+  `~/.gemini/tmp/`, or `~/.local/share/opencode/opencode.db`. Each appears the
+  first time you run that agent. Tabs whose storage is missing simply render
+  empty. The opencode tab needs **Node.js 22.5+** for `node:sqlite`.
 
 ### 2. Get the code
 
@@ -152,9 +175,9 @@ browser opens automatically once it's ready. `Ctrl+C` stops it.
 
 ### 5. Reading from a different directory (optional)
 
-By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`, and
-`~/.gemini/tmp/`. Point it elsewhere with `CLAUDE_HOME`, `CODEX_HOME`, and/or
-`GEMINI_HOME`:
+By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`,
+`~/.gemini/tmp/`, and `~/.local/share/opencode/`. Point it elsewhere with
+`CLAUDE_HOME`, `CODEX_HOME`, `GEMINI_HOME`, and/or `OPENCODE_DATA_DIR`:
 
 ```bash
 # macOS / Linux

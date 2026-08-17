@@ -4,23 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type Tool = "claude" | "codex" | "gemini";
+type Tool = "claude" | "codex" | "gemini" | "opencode";
 type Section = "projects" | "search" | "stats";
 
 const TOOLS: { key: Tool; href: string; label: string; logo: string }[] = [
   { key: "claude", href: "/", label: "Claude", logo: "/claudecode-logo.png" },
   { key: "codex", href: "/codex", label: "Codex", logo: "/codex-logo.png" },
   { key: "gemini", href: "/gemini", label: "Gemini", logo: "/gemini-logo.png" },
+  {
+    key: "opencode",
+    href: "/opencode",
+    label: "opencode",
+    logo: "/opencode-logo.png",
+  },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname() ?? "/";
   const tool: Tool =
-    pathname === "/codex" || pathname.startsWith("/codex/")
-      ? "codex"
-      : pathname === "/gemini" || pathname.startsWith("/gemini/")
-        ? "gemini"
-        : "claude";
+    TOOLS.slice(1).find(
+      (t) => pathname === t.href || pathname.startsWith(`${t.href}/`),
+    )?.key ?? "claude";
 
   // Sliding highlight: a single "thumb" that animates to the active tab.
   // SiteHeader lives in the layout, so it survives route changes — the

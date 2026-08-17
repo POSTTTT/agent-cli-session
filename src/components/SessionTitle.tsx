@@ -7,6 +7,7 @@ import {
   renameSession,
   renameCodexSession,
   renameGeminiSession,
+  renameOpencodeSession,
 } from "@/app/actions";
 
 export function SessionTitle({
@@ -26,7 +27,7 @@ export function SessionTitle({
   customTitle?: string | null;
   firstUserPrompt: string | null;
   basePath?: string;
-  kind?: "claude" | "codex" | "gemini";
+  kind?: "claude" | "codex" | "gemini" | "opencode";
 }) {
   const [editing, setEditing] = useState(false);
   // The current user-set name from either source, used to prefill the edit box.
@@ -57,6 +58,8 @@ export function SessionTitle({
       if (kind === "codex") await renameCodexSession(projectId, sessionId, next);
       else if (kind === "gemini")
         await renameGeminiSession(projectId, sessionId, next);
+      else if (kind === "opencode")
+        await renameOpencodeSession(projectId, sessionId, next);
       else await renameSession(projectId, sessionId, next);
       setEditing(false);
       router.refresh();

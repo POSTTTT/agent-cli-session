@@ -27,6 +27,19 @@ export const GEMINI_TMP_DIR = path.join(GEMINI_HOME, "tmp");
 export const GEMINI_PROJECTS_JSON = path.join(GEMINI_HOME, "projects.json");
 
 /**
+ * opencode keeps everything (projects, sessions, messages, parts) in a single
+ * SQLite database under its XDG data dir, not in per-session log files.
+ */
+export const OPENCODE_DATA_DIR =
+  process.env.OPENCODE_DATA_DIR ??
+  path.join(
+    process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share"),
+    "opencode",
+  );
+
+export const OPENCODE_DB = path.join(OPENCODE_DATA_DIR, "opencode.db");
+
+/**
  * Codex stores sessions in a flat date tree, not per-project folders, so we
  * group them by their real `cwd`. We encode that path (and per-session file
  * paths) into URL-safe base64url ids so they survive routing losslessly.

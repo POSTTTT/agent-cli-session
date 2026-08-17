@@ -13,9 +13,26 @@ import {
   deleteGeminiProject,
   setGeminiAlias,
 } from "@/lib/gemini";
+import {
+  deleteOpencodeSession,
+  deleteOpencodeProject,
+  setOpencodeTitle,
+} from "@/lib/opencode";
 
 export async function deleteTarget(target: string) {
-  if (target.startsWith("gemini-session:")) {
+  if (target.startsWith("opencode-session:")) {
+    const rest = target.slice("opencode-session:".length);
+    const idx = rest.lastIndexOf(":");
+    if (idx === -1) throw new Error("bad target");
+    const projectId = rest.slice(0, idx);
+    const sessionId = rest.slice(idx + 1);
+    await deleteOpencodeSession(sessionId);
+    revalidatePath(`/opencode/p/${encodeURIComponent(projectId)}`);
+  } else if (target.startsWith("opencode-project:")) {
+    const projectId = target.slice("opencode-project:".length);
+    await deleteOpencodeProject(projectId);
+    revalidatePath("/opencode");
+  } else if (target.startsWith("gemini-session:")) {
     const rest = target.slice("gemini-session:".length);
     const idx = rest.lastIndexOf(":");
     if (idx === -1) throw new Error("bad target");
@@ -84,4 +101,14 @@ export async function renameGeminiSession(
   await setGeminiAlias(sessionId, name);
   revalidatePath(`/gemini/p/${encodeURIComponent(projectId)}`);
   revalidatePath(`/gemini/p/${encodeURIComponent(projectId)}/s/${sessionId}`);
+}
+
+export async function renameOpencodeSession(
+  projectId: string,
+  sessionId: string,
+  name: string,
+) {
+  await setOpencodeTitle(sessionId, name);
+  revalidatePath(`/opencode/p/${encodeURIComponent(projectId)}`);
+  revalidatePath(`/opencode/p/${encodeURIComponent(projectId)}/s/${sessionId}`);
 }
