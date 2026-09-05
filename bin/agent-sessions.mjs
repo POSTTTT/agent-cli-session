@@ -17,14 +17,14 @@ const url = `http://localhost:${port}`;
 
 if (wantHelp) {
   console.log(`
-claude-sessions — launch the Claude Sessions web app
+agent-sessions — launch the Agent Sessions web app
 
 Usage:
-  claude-sessions             Start the dev server (default)
-  claude-sessions --prod      Start the production server (requires a build)
-  claude-sessions --build     Build, then start the production server
-  claude-sessions --no-open   Don't auto-open the browser
-  claude-sessions --help      Show this help
+  agent-sessions             Start the dev server (default)
+  agent-sessions --prod      Start the production server (requires a build)
+  agent-sessions --build     Build, then start the production server
+  agent-sessions --no-open   Don't auto-open the browser
+  agent-sessions --help      Show this help
 
 Browser opens automatically at ${url} once the server is ready.
 Project root: ${projectRoot}
@@ -37,7 +37,7 @@ const nodeModulesPresent = fs.existsSync(
 );
 if (!nodeModulesPresent) {
   console.error(
-    `claude-sessions: dependencies are not installed.\n` +
+    `agent-sessions: dependencies are not installed.\n` +
       `Run "npm install" inside ${projectRoot} first.`,
   );
   process.exit(1);
@@ -89,7 +89,7 @@ function run(script) {
       shell: true,
     });
     child.on("error", (err) => {
-      console.error(`claude-sessions: failed to start npm — ${err.message}`);
+      console.error(`agent-sessions: failed to start npm — ${err.message}`);
       reject(1);
     });
     child.on("exit", (code) => {
@@ -101,16 +101,16 @@ function run(script) {
 
 try {
   if (wantBuild) {
-    console.log(`claude-sessions: building in ${projectRoot} …`);
+    console.log(`agent-sessions: building in ${projectRoot} …`);
     await run("build");
   }
   const script = wantProd || wantBuild ? "start" : "dev";
-  console.log(`claude-sessions: starting "npm run ${script}" in ${projectRoot}`);
+  console.log(`agent-sessions: starting "npm run ${script}" in ${projectRoot}`);
   if (!noOpen) {
     // Fire-and-forget: poll the URL and open the browser once it answers.
     waitForReady(url).then((ready) => {
       if (ready) {
-        console.log(`claude-sessions: opening ${url} in your browser`);
+        console.log(`agent-sessions: opening ${url} in your browser`);
         openBrowser(url);
       }
     });

@@ -1,9 +1,9 @@
 {
-  "name": "claude-code-sessions",
+  "name": "agent-cli-session",
   "version": "0.1.0",
   "private": true,
   "bin": {
-    "claude-sessions": "./bin/claude-sessions.mjs"
+    "agent-sessions": "./bin/agent-sessions.mjs"
   },
   "scripts": {
     "dev": "next dev",

@@ -1,4 +1,4 @@
-# claude-code-sessions
+# agent-cli-session
 
 A local web app for browsing, searching, and managing the session logs your
 coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
@@ -136,8 +136,8 @@ opencode keeps no log files at all — everything lives in one SQLite database a
 ### 2. Get the code
 
 ```bash
-git clone https://github.com/POSTTTT/claude-code-sessions
-cd claude-code-sessions
+git clone https://github.com/POSTTTT/agent-cli-session
+cd agent-cli-session
 npm install
 ```
 
@@ -145,7 +145,7 @@ npm install
 > like `C:\Users\<you>\OneDrive\Documents\GitHub\…`, `npm install` may hang
 > silently — file-on-demand sync intercepts every small write npm makes. Either
 > pause syncing for two hours from the tray icon and retry, or move the repo
-> somewhere unsynced such as `C:\dev\claude-code-sessions`.
+> somewhere unsynced such as `C:\dev\agent-cli-session`.
 
 ### 3. Register the launcher (one time per machine)
 
@@ -153,13 +153,13 @@ npm install
 npm link
 ```
 
-This installs a global `claude-sessions` command pointing at this copy of the
+This installs a global `agent-sessions` command pointing at this copy of the
 project. `npm install -g .` from the project folder does the same thing.
 
 ### 4. Launch from anywhere
 
 ```bash
-claude-sessions
+agent-sessions
 ```
 
 No `cd`, no `npm run`. The server defaults to <http://localhost:3000> and your
@@ -167,11 +167,11 @@ browser opens automatically once it's ready. `Ctrl+C` stops it.
 
 | Command                     | What it does                                             |
 | --------------------------- | -------------------------------------------------------- |
-| `claude-sessions`           | Start the **dev** server + auto-open browser (default)    |
-| `claude-sessions --prod`    | Start the **production** server (requires a prior build)  |
-| `claude-sessions --build`   | Run `next build`, then start the production server        |
-| `claude-sessions --no-open` | Don't open the browser                                    |
-| `claude-sessions --help`    | Show the help and the project path                        |
+| `agent-sessions`           | Start the **dev** server + auto-open browser (default)    |
+| `agent-sessions --prod`    | Start the **production** server (requires a prior build)  |
+| `agent-sessions --build`   | Run `next build`, then start the production server        |
+| `agent-sessions --no-open` | Don't open the browser                                    |
+| `agent-sessions --help`    | Show the help and the project path                        |
 
 ### 5. Reading from a different directory (optional)
 
@@ -181,13 +181,13 @@ By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`,
 
 ```bash
 # macOS / Linux
-CLAUDE_HOME=/Volumes/backups/.claude claude-sessions
+CLAUDE_HOME=/Volumes/backups/.claude agent-sessions
 ```
 
 ```powershell
 # Windows
 $env:CLAUDE_HOME = "D:\backups\.claude"
-claude-sessions
+agent-sessions
 ```
 
 ---
