@@ -1,17 +1,13 @@
 # agent-cli-session
 
 A local web app for browsing, searching, and managing the session logs your
-coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
-(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), **Opencode**
-(`~/.local/share/opencode/opencode.db`), **Cursor** (`~/.cursor/chats/`),
-**Grok** (`~/.grok/sessions/`), and **Muse Code**
-(`~/.local/share/muse/sessions/`).
+coding agents leave behind — Claude Code, Codex, Gemini CLI, Opencode, Cursor,
+Grok, and Muse Code.
 
 Everything runs on your machine. No data leaves your computer, and no API calls
 are made. Works on macOS, Linux, and Windows.
 
-The header has seven tabs — **Claude**, **Codex**, **Gemini**, **Opencode**,
-**Cursor**, **Grok**, **Muse** — each with the same Projects / Search / Stats
+The header has one tab per agent, each with the same Projects / Search / Stats
 pages.
 
 ---
@@ -75,107 +71,36 @@ shows the same name. The filename and session UUID are never changed.
 showing the full path. It uses `fs.rm` with retries, which absorbs the
 transient file locks Windows AV and OneDrive sync tend to produce.
 
-### Codex tab (`/codex`)
+---
 
-Mirrors every feature above for Codex sessions in `~/.codex/sessions/`, handling
-the format differences transparently:
+## Supported agents
 
-- Codex writes a flat date tree (`sessions/YYYY/MM/DD/rollout-*.jsonl`) rather
-  than per-project folders, so sessions are grouped into projects by their real
-  `cwd`, read from each rollout's `session_meta` line.
-- The viewer understands Codex's event stream: user messages, agent replies,
-  collapsible reasoning, and `function_call` cards merged with their output.
-- Renames live in `~/.codex/sessions/_codex_aliases.json`. Codex has no
-  `/resume` title to mirror into, so the rollout `.jsonl` is never modified.
+Every tab reads its agent's own storage, in place and read-only unless you
+rename or delete. Nothing is copied, indexed, or uploaded.
 
-### Gemini tab (`/gemini`)
+| Tab          | CLI            | Sessions read from                                                | Notes                                                                     |
+| ------------ | -------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Claude**   | Claude Code    | `~/.claude/projects/<encoded cwd>/<uuid>.jsonl`                    | One folder per project already; renames mirror into the log, so `/resume` shows them |
+| **Codex**    | Codex CLI      | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`                     | Flat date tree; renames also land in `session_index.jsonl`, which the CLI picker reads |
+| **Gemini**   | Gemini CLI     | `~/.gemini/tmp/<project>/chats/session-*.jsonl`                    | Real paths come from `projects.json`; "input" is peak context, not a sum   |
+| **Opencode** | opencode       | `~/.local/share/opencode/opencode.db` (SQLite)                     | No log files at all; renames write back to `session.title`, so the TUI agrees |
+| **Cursor**   | cursor-agent   | `~/.cursor/chats/<workspace>/<uuid>/store.db` (SQLite)             | Message order is blob insertion order; no token usage is recorded anywhere |
+| **Grok**     | grok           | `~/.grok/sessions/<encoded cwd>/<uuid>/chat_history.jsonl`         | Token counts come from the ACP stream in `updates.jsonl`, as running totals |
+| **Muse**     | Muse Code      | `~/.local/share/muse/sessions/YYYY/MM/DD/<uuid>/session.jsonl`     | An event log, projected down to the conversation turns                     |
 
-Same again for Gemini CLI chats under `~/.gemini/tmp/`:
+Whatever the format, the app normalizes it to the same thing:
 
-- Gemini already stores one folder per project
-  (`tmp/<project>/chats/session-*.jsonl`), and `~/.gemini/projects.json` maps
-  each to its real working directory, which the app shows as the project path.
-- Each chat log is an append journal — a header line, `$set` patches, then one
-  object per message. The viewer reconstructs the conversation from it: prompts,
-  replies, collapsible **thoughts**, and `toolCalls` merged with their results.
-- **Context tokens** are shown instead of input tokens. Gemini records
-  cumulative context size per turn, so the app reports the peak rather than a
-  meaningless sum. Output tokens are summed normally.
-- Renames live in `~/.gemini/_gemini_aliases.json`; the chat log is untouched.
-
-### Opencode tab (`/opencode`)
-
-opencode keeps no log files at all — everything lives in one SQLite database at
-`~/.local/share/opencode/opencode.db`, read here through Node's built-in
-`node:sqlite` (no extra dependency):
-
-- Recent opencode versions file every session under a single `global` project
-  whose worktree is `/`, so that table is useless for grouping. Projects are
-  grouped by each session's recorded `directory` instead, which is the real
-  working directory.
-- A session is a `session` row, a turn is a `message` row, and every text /
-  reasoning / tool block is a `part` row holding JSON. The viewer replays them
-  in order: prompts, replies, collapsible reasoning, and tool calls merged with
-  their output.
-- **Size** is the stored JSON weight of a session's messages and parts, since
-  there is no file to measure. Token counts come from the session row.
-- opencode auto-titles sessions and its own `/rename` overwrites that same
-  field, so **Rename** writes straight to `session.title` — the change shows up
-  in the opencode TUI too. Deleting a session or project deletes those rows;
-  messages and parts cascade with them.
-
-### Cursor tab (`/cursor`)
-
-`cursor-agent` gives every chat its own directory under
-`~/.cursor/chats/<workspace hash>/<session uuid>/`:
-
-- `meta.json` holds the title, the real `cwd`, and the timestamps. The
-  workspace-hash folder is *not* the project — sessions are grouped by that
-  recorded `cwd`, like every other tab.
-- `store.db` is a SQLite blob store (read through `node:sqlite`) mixing two
-  kinds of row: JSON messages in the Vercel AI SDK shape, and protobuf tree
-  nodes that link them by content hash. Walking that DAG is the only way to
-  recover the intended order — but blobs are inserted as the conversation
-  happens, so **rowid order is conversation order**, and that is what the
-  viewer replays. Non-JSON rows are skipped.
-- cursor-agent records no token usage anywhere in the store, so input/output
-  are reported as **0**. Size is the weight of `store.db`.
-- Renames live in `~/.cursor/chats/_aliases.json`; the store is never written.
-
-### Grok tab (`/grok`)
-
-`grok` already shards by working directory — the folder name *is* the cwd,
-percent-encoded — so projects come for free:
-
-- A session is `~/.grok/sessions/<encoded cwd>/<uuid>/`, with `summary.json`
-  (model, git branch, message counts, timestamps), `chat_history.jsonl` (the
-  model-facing turns) and `updates.jsonl` (grok's ACP event stream).
-- The transcript is read from `chat_history.jsonl`: system preamble, prompts,
-  replies, `reasoning_content`, and `tool_calls` merged with their `tool`
-  results. Turns grok injects itself carry a `synthetic_reason` and are filed
-  as raw so they stay out of the default view.
-- **Token counts only ever appear in the ACP updates**, as running totals, so
-  the largest value seen in `updates.jsonl` is the session total.
-- Titles come from grok's own FTS index, `session_search.sqlite`. Renames live
-  in `~/.grok/sessions/_aliases.json`.
-
-### Muse tab (`/muse`)
-
-Muse Code writes an append-only event log per session, sharded by local date at
-`~/.local/share/muse/sessions/YYYY/MM/DD/<uuid>/session.jsonl`:
-
-- Every line is an envelope (`{sequence, recorded_at, payload_type, payload}`),
-  and the conversation is a handful of `payload.event` kinds among a great many
-  runtime ones. The viewer projects the log down to those: run prompts,
-  `assistant_message_committed`, `reasoning_committed`,
-  `assistant_tool_calls_committed` and `tool_result`. Lines that are
-  `retained_frame` batches get unwrapped first.
-- There is no project folder and no chat file: a session's cwd, model and
-  auto-generated name come from its own `runtime.session.metadata`,
-  `route_facts` and `session.name.changed` records.
-- Usage comes from `model_completed`: `input_tokens` is the whole prompt each
-  call, so the largest is the context size, while output accrues.
-- Renames live in `~/.local/share/muse/sessions/_aliases.json`.
+- **Projects are the real working directory.** Date trees, workspace hashes and
+  lossy dash-encoded folder names are all resolved back to the `cwd` recorded
+  inside the session itself.
+- **Transcripts are one shape.** Prompts, replies, collapsible reasoning, and
+  tool calls merged with their output — whether the source is a JSONL chat log,
+  a runtime event stream, or SQLite rows.
+- **Renames use a sidecar** (`_aliases.json` next to the store) for agents with
+  no title field to write back to, so the original logs stay untouched. Claude
+  Code and opencode are the exceptions noted above.
+- **A missing store is not an error.** Tabs for agents you don't have installed
+  simply render empty.
 
 ---
 
@@ -183,13 +108,10 @@ Muse Code writes an append-only event log per session, sharded by local date at
 
 ### 1. Prerequisites
 
-- **Node.js 20+** (`node -v`).
-- At least one agent's storage — `~/.claude/projects/`, `~/.codex/sessions/`,
-  `~/.gemini/tmp/`, `~/.local/share/opencode/opencode.db`, `~/.cursor/chats/`,
-  `~/.grok/sessions/`, or `~/.local/share/muse/sessions/`. Each appears the
-  first time you run that agent. Tabs whose storage is missing simply render
-  empty. The Opencode, Cursor and Grok tabs need **Node.js 22.5+** for
-  `node:sqlite`.
+- **Node.js 20+** (`node -v`), or **22.5+** for the SQLite-backed tabs
+  (Opencode, Cursor, Grok), which use the built-in `node:sqlite`.
+- At least one agent's storage from the table above. Each appears the first
+  time you run that agent.
 
 ### 2. Get the code
 
@@ -233,11 +155,15 @@ browser opens automatically once it's ready. `Ctrl+C` stops it.
 
 ### 5. Reading from a different directory (optional)
 
-By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`,
-`~/.gemini/tmp/`, `~/.local/share/opencode/`, `~/.cursor/chats/`,
-`~/.grok/sessions/`, and `~/.local/share/muse/sessions/`. Point any of them
-elsewhere with `CLAUDE_HOME`, `CODEX_HOME`, `GEMINI_HOME`, `OPENCODE_DATA_DIR`,
-`CURSOR_HOME`, `GROK_HOME`, and/or `MUSE_DATA_DIR`:
+Each store's location can be overridden — useful for reading a backup or
+another machine's logs:
+
+| Tab      | Variable            | Tab      | Variable             |
+| -------- | ------------------- | -------- | -------------------- |
+| Claude   | `CLAUDE_HOME`       | Cursor   | `CURSOR_HOME`        |
+| Codex    | `CODEX_HOME`        | Grok     | `GROK_HOME`          |
+| Gemini   | `GEMINI_HOME`       | Muse     | `MUSE_DATA_DIR`      |
+| Opencode | `OPENCODE_DATA_DIR` |          |                      |
 
 ```bash
 # macOS / Linux
@@ -271,8 +197,9 @@ node src/lib/agents.test.mjs
 
 - **Delete is permanent.** `fs.rm` removes the `.jsonl` file or the whole
   project folder. The confirmation dialog shows the full path first.
-- **Rename never rewrites existing content** — it appends a single `ai-title`
-  line and leaves every other entry intact.
+- **Rename never rewrites existing content.** Where it writes back to an agent
+  at all it appends or updates one title field; every other entry is left
+  intact. Elsewhere it only touches the `_aliases.json` sidecar.
 - **No auth, single user.** The app expects to be reached on `localhost`.
   Don't expose it on a network.
 
