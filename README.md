@@ -78,15 +78,15 @@ transient file locks Windows AV and OneDrive sync tend to produce.
 Every tab reads its agent's own storage, in place and read-only unless you
 rename or delete. Nothing is copied, indexed, or uploaded.
 
-| Tab          | CLI            | Sessions read from                                                | Notes                                                                     |
-| ------------ | -------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Claude**   | Claude Code    | `~/.claude/projects/<encoded cwd>/<uuid>.jsonl`                    | One folder per project already; renames mirror into the log, so `/resume` shows them |
-| **Codex**    | Codex CLI      | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`                     | Flat date tree; renames also land in `session_index.jsonl`, which the CLI picker reads |
-| **Gemini**   | Gemini CLI     | `~/.gemini/tmp/<project>/chats/session-*.jsonl`                    | Real paths come from `projects.json`; "input" is peak context, not a sum   |
-| **Opencode** | opencode       | `~/.local/share/opencode/opencode.db` (SQLite)                     | No log files at all; renames write back to `session.title`, so the TUI agrees |
-| **Cursor**   | cursor-agent   | `~/.cursor/chats/<workspace>/<uuid>/store.db` (SQLite)             | Message order is blob insertion order; no token usage is recorded anywhere |
-| **Grok**     | grok           | `~/.grok/sessions/<encoded cwd>/<uuid>/chat_history.jsonl`         | Token counts come from the ACP stream in `updates.jsonl`, as running totals |
-| **Muse**     | Muse Code      | `~/.local/share/muse/sessions/YYYY/MM/DD/<uuid>/session.jsonl`     | An event log, projected down to the conversation turns                     |
+| Agents           | Sessions read from                                             | Notes                                                                                  |
+| ---------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Claude Code**  | `~/.claude/projects/<encoded cwd>/<uuid>.jsonl`                | One folder per project already; renames mirror into the log, so `/resume` shows them   |
+| **Codex CLI**    | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`                 | Flat date tree; renames also land in `session_index.jsonl`, which the CLI picker reads |
+| **Gemini CLI**   | `~/.gemini/tmp/<project>/chats/session-*.jsonl`                | Real paths come from `projects.json`; "input" is peak context, not a sum               |
+| **opencode**     | `~/.local/share/opencode/opencode.db` (SQLite)                 | No log files at all; renames write back to `session.title`, so the TUI agrees          |
+| **cursor-agent** | `~/.cursor/chats/<workspace>/<uuid>/store.db` (SQLite)         | Message order is blob insertion order; no token usage is recorded anywhere             |
+| **grok**         | `~/.grok/sessions/<encoded cwd>/<uuid>/chat_history.jsonl`     | Token counts come from the ACP stream in `updates.jsonl`, as running totals            |
+| **Muse Code**    | `~/.local/share/muse/sessions/YYYY/MM/DD/<uuid>/session.jsonl` | An event log, projected down to the conversation turns                                 |
 
 Whatever the format, the app normalizes it to the same thing:
 
