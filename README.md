@@ -2,14 +2,17 @@
 
 A local web app for browsing, searching, and managing the session logs your
 coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
-(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), and **opencode**
-(`~/.local/share/opencode/opencode.db`).
+(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), **opencode**
+(`~/.local/share/opencode/opencode.db`), **cursor-agent** (`~/.cursor/chats/`),
+**grok** (`~/.grok/sessions/`), and **Muse Code**
+(`~/.local/share/muse/sessions/`).
 
 Everything runs on your machine. No data leaves your computer, and no API calls
 are made. Works on macOS, Linux, and Windows.
 
-The header has four tabs — **Claude**, **Codex**, **Gemini**, **opencode** —
-each with the same Projects / Search / Stats pages.
+The header has seven tabs — **Claude**, **Codex**, **Gemini**, **opencode**,
+**cursor-agent**, **grok**, **Muse** — each with the same Projects / Search /
+Stats pages.
 
 ---
 
@@ -121,6 +124,59 @@ opencode keeps no log files at all — everything lives in one SQLite database a
   in the opencode TUI too. Deleting a session or project deletes those rows;
   messages and parts cascade with them.
 
+### cursor-agent tab (`/cursor`)
+
+cursor-agent gives every chat its own directory under
+`~/.cursor/chats/<workspace hash>/<session uuid>/`:
+
+- `meta.json` holds the title, the real `cwd`, and the timestamps. The
+  workspace-hash folder is *not* the project — sessions are grouped by that
+  recorded `cwd`, like every other tab.
+- `store.db` is a SQLite blob store (read through `node:sqlite`) mixing two
+  kinds of row: JSON messages in the Vercel AI SDK shape, and protobuf tree
+  nodes that link them by content hash. Walking that DAG is the only way to
+  recover the intended order — but blobs are inserted as the conversation
+  happens, so **rowid order is conversation order**, and that is what the
+  viewer replays. Non-JSON rows are skipped.
+- cursor-agent records no token usage anywhere in the store, so input/output
+  are reported as **0**. Size is the weight of `store.db`.
+- Renames live in `~/.cursor/chats/_aliases.json`; the store is never written.
+
+### grok tab (`/grok`)
+
+grok already shards by working directory — the folder name *is* the cwd,
+percent-encoded — so projects come for free:
+
+- A session is `~/.grok/sessions/<encoded cwd>/<uuid>/`, with `summary.json`
+  (model, git branch, message counts, timestamps), `chat_history.jsonl` (the
+  model-facing turns) and `updates.jsonl` (grok's ACP event stream).
+- The transcript is read from `chat_history.jsonl`: system preamble, prompts,
+  replies, `reasoning_content`, and `tool_calls` merged with their `tool`
+  results. Turns grok injects itself carry a `synthetic_reason` and are filed
+  as raw so they stay out of the default view.
+- **Token counts only ever appear in the ACP updates**, as running totals, so
+  the largest value seen in `updates.jsonl` is the session total.
+- Titles come from grok's own FTS index, `session_search.sqlite`. Renames live
+  in `~/.grok/sessions/_aliases.json`.
+
+### Muse tab (`/muse`)
+
+Muse Code writes an append-only event log per session, sharded by local date at
+`~/.local/share/muse/sessions/YYYY/MM/DD/<uuid>/session.jsonl`:
+
+- Every line is an envelope (`{sequence, recorded_at, payload_type, payload}`),
+  and the conversation is a handful of `payload.event` kinds among a great many
+  runtime ones. The viewer projects the log down to those: run prompts,
+  `assistant_message_committed`, `reasoning_committed`,
+  `assistant_tool_calls_committed` and `tool_result`. Lines that are
+  `retained_frame` batches get unwrapped first.
+- There is no project folder and no chat file: a session's cwd, model and
+  auto-generated name come from its own `runtime.session.metadata`,
+  `route_facts` and `session.name.changed` records.
+- Usage comes from `model_completed`: `input_tokens` is the whole prompt each
+  call, so the largest is the context size, while output accrues.
+- Renames live in `~/.local/share/muse/sessions/_aliases.json`.
+
 ---
 
 ## Setup
@@ -129,9 +185,11 @@ opencode keeps no log files at all — everything lives in one SQLite database a
 
 - **Node.js 20+** (`node -v`).
 - At least one agent's storage — `~/.claude/projects/`, `~/.codex/sessions/`,
-  `~/.gemini/tmp/`, or `~/.local/share/opencode/opencode.db`. Each appears the
+  `~/.gemini/tmp/`, `~/.local/share/opencode/opencode.db`, `~/.cursor/chats/`,
+  `~/.grok/sessions/`, or `~/.local/share/muse/sessions/`. Each appears the
   first time you run that agent. Tabs whose storage is missing simply render
-  empty. The opencode tab needs **Node.js 22.5+** for `node:sqlite`.
+  empty. The opencode, cursor-agent and grok tabs need **Node.js 22.5+** for
+  `node:sqlite`.
 
 ### 2. Get the code
 
@@ -176,8 +234,10 @@ browser opens automatically once it's ready. `Ctrl+C` stops it.
 ### 5. Reading from a different directory (optional)
 
 By default the app reads `~/.claude/projects/`, `~/.codex/sessions/`,
-`~/.gemini/tmp/`, and `~/.local/share/opencode/`. Point it elsewhere with
-`CLAUDE_HOME`, `CODEX_HOME`, `GEMINI_HOME`, and/or `OPENCODE_DATA_DIR`:
+`~/.gemini/tmp/`, `~/.local/share/opencode/`, `~/.cursor/chats/`,
+`~/.grok/sessions/`, and `~/.local/share/muse/sessions/`. Point any of them
+elsewhere with `CLAUDE_HOME`, `CODEX_HOME`, `GEMINI_HOME`, `OPENCODE_DATA_DIR`,
+`CURSOR_HOME`, `GROK_HOME`, and/or `MUSE_DATA_DIR`:
 
 ```bash
 # macOS / Linux
@@ -199,10 +259,12 @@ agent-sessions
 - Server-side filesystem access via server components and Server Actions
 - No database, no auth — runs on `localhost` only
 
-The path-to-folder-tree logic has a standalone check:
+The path-to-folder-tree logic and the session readers have standalone checks:
 
 ```bash
 node src/lib/pathtree.test.mjs
+node src/lib/opencode.test.mjs
+node src/lib/agents.test.mjs
 ```
 
 ## Safety

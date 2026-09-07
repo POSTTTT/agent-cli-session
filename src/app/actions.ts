@@ -18,9 +18,29 @@ import {
   deleteOpencodeProject,
   setOpencodeTitle,
 } from "@/lib/opencode";
+import { getAgent } from "@/lib/agents";
 
 export async function deleteTarget(target: string) {
-  if (target.startsWith("opencode-session:")) {
+  // Registry-backed tabs (cursor-agent, grok, Muse) share one target format:
+  // agent-session:<tool>:<projectId>:<sessionId>. Ids are base64url, so they
+  // never contain the separator.
+  if (target.startsWith("agent-session:")) {
+    const [tool, projectId, sessionId] = target
+      .slice("agent-session:".length)
+      .split(":");
+    const agent = getAgent(tool);
+    if (!agent || !projectId || !sessionId) throw new Error("bad target");
+    await agent.store.deleteSession(sessionId);
+    revalidatePath(`/${tool}/p/${encodeURIComponent(projectId)}`);
+  } else if (target.startsWith("agent-project:")) {
+    const [tool, projectId] = target
+      .slice("agent-project:".length)
+      .split(":");
+    const agent = getAgent(tool);
+    if (!agent || !projectId) throw new Error("bad target");
+    await agent.store.deleteProject(projectId);
+    revalidatePath(`/${tool}`);
+  } else if (target.startsWith("opencode-session:")) {
     const rest = target.slice("opencode-session:".length);
     const idx = rest.lastIndexOf(":");
     if (idx === -1) throw new Error("bad target");
@@ -111,4 +131,17 @@ export async function renameOpencodeSession(
   await setOpencodeTitle(sessionId, name);
   revalidatePath(`/opencode/p/${encodeURIComponent(projectId)}`);
   revalidatePath(`/opencode/p/${encodeURIComponent(projectId)}/s/${sessionId}`);
+}
+
+export async function renameAgentSession(
+  tool: string,
+  projectId: string,
+  sessionId: string,
+  name: string,
+) {
+  const agent = getAgent(tool);
+  if (!agent) throw new Error("unknown agent");
+  await agent.store.rename(sessionId, name);
+  revalidatePath(`/${tool}/p/${encodeURIComponent(projectId)}`);
+  revalidatePath(`/${tool}/p/${encodeURIComponent(projectId)}/s/${sessionId}`);
 }

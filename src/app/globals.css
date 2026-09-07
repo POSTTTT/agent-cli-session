@@ -52,6 +52,13 @@ body {
   letter-spacing: 0;
 }
 
+/* The one exception to square corners: tab logos that ship as opaque square
+   image tiles (Cursor, Grok, Muse) rather than transparent marks. Left sharp
+   they read as pasted-on stickers, so they get their corners back. */
+.logo-mark {
+  border-radius: 4px !important;
+}
+
 /* Unify the soft white/10 dividers into hard phosphor-tinted rules. */
 [class*="border"] {
   border-color: var(--term-border) !important;

@@ -44,7 +44,7 @@ export default async function OpencodeSessionPage({
         />
       </div>
       <p className="mt-1 text-sm text-white/50">{entries.length} entries</p>
-      <AgentTranscriptView entries={entries} agentLabel="opencode" />
+      <AgentTranscriptView entries={entries} agentLabel="Opencode" />
     </div>
   );
 }

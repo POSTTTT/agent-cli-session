@@ -8,6 +8,7 @@ import {
   renameCodexSession,
   renameGeminiSession,
   renameOpencodeSession,
+  renameAgentSession,
 } from "@/app/actions";
 
 export function SessionTitle({
@@ -27,7 +28,9 @@ export function SessionTitle({
   customTitle?: string | null;
   firstUserPrompt: string | null;
   basePath?: string;
-  kind?: "claude" | "codex" | "gemini" | "opencode";
+  // The four hand-written tabs each have their own rename action; every other
+  // value is a registry agent key (see src/lib/agents.ts).
+  kind?: string;
 }) {
   const [editing, setEditing] = useState(false);
   // The current user-set name from either source, used to prefill the edit box.
@@ -60,7 +63,8 @@ export function SessionTitle({
         await renameGeminiSession(projectId, sessionId, next);
       else if (kind === "opencode")
         await renameOpencodeSession(projectId, sessionId, next);
-      else await renameSession(projectId, sessionId, next);
+      else if (kind === "claude") await renameSession(projectId, sessionId, next);
+      else await renameAgentSession(kind, projectId, sessionId, next);
       setEditing(false);
       router.refresh();
     });

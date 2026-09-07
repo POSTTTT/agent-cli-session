@@ -4,18 +4,54 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type Tool = "claude" | "codex" | "gemini" | "opencode";
+type Tool =
+  | "claude"
+  | "codex"
+  | "gemini"
+  | "opencode"
+  | "cursor"
+  | "grok"
+  | "muse";
 type Section = "projects" | "search" | "stats";
 
-const TOOLS: { key: Tool; href: string; label: string; logo: string }[] = [
+// `rounded` marks a logo that ships as an opaque square tile rather than a
+// transparent mark, so it needs its corners softened to sit in the pill row.
+const TOOLS: {
+  key: Tool;
+  href: string;
+  label: string;
+  logo: string;
+  rounded?: boolean;
+}[] = [
   { key: "claude", href: "/", label: "Claude", logo: "/claudecode-logo.png" },
   { key: "codex", href: "/codex", label: "Codex", logo: "/codex-logo.png" },
   { key: "gemini", href: "/gemini", label: "Gemini", logo: "/gemini-logo.png" },
   {
     key: "opencode",
     href: "/opencode",
-    label: "opencode",
+    label: "Opencode",
     logo: "/opencode-logo.png",
+  },
+  {
+    key: "cursor",
+    href: "/cursor",
+    label: "Cursor",
+    logo: "/cursor-logo.png",
+    rounded: true,
+  },
+  {
+    key: "grok",
+    href: "/grok",
+    label: "Grok",
+    logo: "/grok-logo.jpg",
+    rounded: true,
+  },
+  {
+    key: "muse",
+    href: "/muse",
+    label: "Muse",
+    logo: "/meta-logo.jpg",
+    rounded: true,
   },
 ];
 
@@ -30,15 +66,24 @@ export function SiteHeader() {
   // SiteHeader lives in the layout, so it survives route changes — the
   // thumb transitions smoothly as `tool` updates from usePathname().
   const tabRefs = useRef<Array<HTMLAnchorElement | null>>([]);
-  const [thumb, setThumb] = useState<{ left: number; width: number } | null>(
-    null,
-  );
+  const [thumb, setThumb] = useState<{
+    left: number;
+    width: number;
+    top: number;
+    height: number;
+  } | null>(null);
 
   useEffect(() => {
     const measure = () => {
       const idx = TOOLS.findIndex((t) => t.key === tool);
       const el = tabRefs.current[idx];
-      if (el) setThumb({ left: el.offsetLeft, width: el.offsetWidth });
+      if (el)
+        setThumb({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+          top: el.offsetTop,
+          height: el.offsetHeight,
+        });
     };
     measure();
     window.addEventListener("resize", measure);
@@ -95,13 +140,18 @@ export function SiteHeader() {
 
       {/* Row 2: tool toggle */}
       <div className="flex justify-center pb-1">
-        <div className="relative inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+        <div className="relative inline-flex flex-wrap items-center justify-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
           {/* Sliding highlight behind the active tab. */}
           {thumb && (
             <span
               aria-hidden
-              className="pointer-events-none absolute top-1 bottom-1 bg-[#e0a23c] transition-[left,width] duration-300 ease-out"
-              style={{ left: thumb.left, width: thumb.width }}
+              className="pointer-events-none absolute bg-[#e0a23c] transition-[left,width,top] duration-300 ease-out"
+              style={{
+                left: thumb.left,
+                width: thumb.width,
+                top: thumb.top,
+                height: thumb.height,
+              }}
             />
           )}
           {TOOLS.map((t, i) => {
@@ -113,11 +163,11 @@ export function SiteHeader() {
                 ref={(el) => {
                   tabRefs.current[i] = el;
                 }}
-                className={`relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${
+                className={`relative z-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   active ? "text-black" : "text-white/70 hover:text-white"
                 }`}
               >
-                <BrandMark src={t.logo} alt={t.label} />
+                <BrandMark src={t.logo} alt={t.label} rounded={t.rounded} />
                 {t.label}
               </Link>
             );
@@ -179,7 +229,15 @@ function TerminalIcon() {
 }
 
 /** Tool brand logo (served from /public). */
-function BrandMark({ src, alt }: { src: string; alt: string }) {
+function BrandMark({
+  src,
+  alt,
+  rounded,
+}: {
+  src: string;
+  alt: string;
+  rounded?: boolean;
+}) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
@@ -187,7 +245,7 @@ function BrandMark({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       width={18}
       height={18}
-      className="h-[18px] w-[18px] object-contain"
+      className={`h-[18px] w-[18px] object-contain${rounded ? " logo-mark" : ""}`}
     />
   );
 }

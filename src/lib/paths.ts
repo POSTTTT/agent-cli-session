@@ -76,3 +76,43 @@ export function decodeProjectId(id: string): string {
   }
   return "/" + id.replace(/^-/, "").replace(/-/g, "/");
 }
+
+/**
+ * cursor-agent keeps one directory per chat under ~/.cursor/chats/<workspace
+ * hash>/<session uuid>/, holding a meta.json (title + cwd) and a store.db
+ * SQLite blob store with the messages themselves.
+ */
+export const CURSOR_HOME =
+  process.env.CURSOR_HOME ?? path.join(os.homedir(), ".cursor");
+
+export const CURSOR_CHATS_DIR = path.join(CURSOR_HOME, "chats");
+
+/**
+ * grok shards sessions by working directory: ~/.grok/sessions/<percent-encoded
+ * cwd>/<session uuid>/, with summary.json metadata, chat_history.jsonl (the
+ * model-facing turns) and updates.jsonl (the ACP event stream).
+ */
+export const GROK_HOME =
+  process.env.GROK_HOME ?? path.join(os.homedir(), ".grok");
+
+export const GROK_SESSIONS_DIR = path.join(GROK_HOME, "sessions");
+
+/** grok's own full-text index; the only place a session's title is stored. */
+export const GROK_SEARCH_DB = path.join(
+  GROK_SESSIONS_DIR,
+  "session_search.sqlite",
+);
+
+/**
+ * Muse Code shards sessions by local date:
+ * <data dir>/muse/sessions/YYYY/MM/DD/<session uuid>/session.jsonl — an
+ * append-only event log rather than a chat log.
+ */
+export const MUSE_DATA_DIR =
+  process.env.MUSE_DATA_DIR ??
+  path.join(
+    process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share"),
+    "muse",
+  );
+
+export const MUSE_SESSIONS_DIR = path.join(MUSE_DATA_DIR, "sessions");

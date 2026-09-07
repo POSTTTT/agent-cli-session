@@ -1,26 +1,34 @@
 import Link from "next/link";
-import { listOpencodeSessions, resolveOpencodeProjectPath } from "@/lib/opencode";
+import { notFound } from "next/navigation";
+import { getAgent } from "@/lib/agents";
 import { formatBytes, formatNumber, formatRelative } from "@/lib/format";
 import { DeleteButton } from "@/components/DeleteButton";
 import { SessionTitle } from "@/components/SessionTitle";
 
 export const dynamic = "force-dynamic";
 
-export default async function OpencodeProjectPage({
+export default async function AgentProjectPage({
   params,
 }: {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ tool: string; projectId: string }>;
 }) {
-  const { projectId } = await params;
+  const { tool, projectId } = await params;
+  const agent = getAgent(tool);
+  if (!agent) notFound();
+
   const decoded = decodeURIComponent(projectId);
   const [sessions, realPath] = await Promise.all([
-    listOpencodeSessions(decoded),
-    resolveOpencodeProjectPath(decoded),
+    agent.store.listSessions(decoded),
+    agent.store.resolveProjectPath(decoded),
   ]);
+
   return (
     <div>
-      <Link href="/opencode" className="text-sm text-white/60 hover:text-white">
-        ← All Opencode projects
+      <Link
+        href={`/${agent.key}`}
+        className="text-sm text-white/60 hover:text-white"
+      >
+        ← All {agent.label} projects
       </Link>
       <h1 className="mt-2 text-2xl font-semibold">{realPath}</h1>
       <p className="mt-2 text-sm text-white/60">
@@ -38,30 +46,33 @@ export default async function OpencodeProjectPage({
                 <SessionTitle
                   projectId={decoded}
                   sessionId={s.sessionId}
-                  alias={null}
+                  alias={s.alias}
                   aiTitle={s.aiTitle}
                   firstUserPrompt={s.firstUserPrompt}
-                  basePath="/opencode/p"
-                  kind="opencode"
+                  basePath={`/${agent.key}/p`}
+                  kind={agent.key}
                 />
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/50">
                   <span suppressHydrationWarning>{formatRelative(s.mtime)}</span>
                   <span>{s.messageCount} msgs</span>
                   <span>{formatBytes(s.bytes)}</span>
                   {s.model && <span className="font-mono">{s.model}</span>}
+                  {s.gitBranch && (
+                    <span className="font-mono">{s.gitBranch}</span>
+                  )}
                   <span>
                     {formatNumber(s.inputTokens)} in /{" "}
                     {formatNumber(s.outputTokens)} out
                   </span>
                 </div>
                 <div className="mt-1 truncate font-mono text-[10px] text-white/30">
-                  {s.sessionId}
+                  {s.file}
                 </div>
               </div>
               <DeleteButton
-                target={`opencode-session:${decoded}:${s.sessionId}`}
+                target={`agent-session:${agent.key}:${decoded}:${s.sessionId}`}
                 label="Delete"
-                confirm="Permanently delete this Opencode session from the database? This cannot be undone."
+                confirm={`Permanently delete this ${agent.label} session from disk? This cannot be undone.`}
               />
             </div>
           </div>

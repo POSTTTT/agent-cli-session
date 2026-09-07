@@ -1,14 +1,23 @@
-import { computeOpencodeStats } from "@/lib/opencode";
+import { notFound } from "next/navigation";
+import { getAgent } from "@/lib/agents";
 import { formatBytes, formatNumber } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function OpencodeStatsPage() {
-  const stats = await computeOpencodeStats();
+export default async function AgentStatsPage({
+  params,
+}: {
+  params: Promise<{ tool: string }>;
+}) {
+  const { tool } = await params;
+  const agent = getAgent(tool);
+  if (!agent) notFound();
+
+  const stats = await agent.store.stats();
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Opencode stats</h1>
+      <h1 className="text-2xl font-semibold">{agent.label} stats</h1>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Stat label="Projects" value={formatNumber(stats.projects)} />
