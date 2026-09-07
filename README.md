@@ -2,17 +2,17 @@
 
 A local web app for browsing, searching, and managing the session logs your
 coding agents leave behind — **Claude Code** (`~/.claude/projects/`), **Codex**
-(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), **opencode**
-(`~/.local/share/opencode/opencode.db`), **cursor-agent** (`~/.cursor/chats/`),
-**grok** (`~/.grok/sessions/`), and **Muse Code**
+(`~/.codex/sessions/`), **Gemini CLI** (`~/.gemini/tmp/`), **Opencode**
+(`~/.local/share/opencode/opencode.db`), **Cursor** (`~/.cursor/chats/`),
+**Grok** (`~/.grok/sessions/`), and **Muse Code**
 (`~/.local/share/muse/sessions/`).
 
 Everything runs on your machine. No data leaves your computer, and no API calls
 are made. Works on macOS, Linux, and Windows.
 
-The header has seven tabs — **Claude**, **Codex**, **Gemini**, **opencode**,
-**cursor-agent**, **grok**, **Muse** — each with the same Projects / Search /
-Stats pages.
+The header has seven tabs — **Claude**, **Codex**, **Gemini**, **Opencode**,
+**Cursor**, **Grok**, **Muse** — each with the same Projects / Search / Stats
+pages.
 
 ---
 
@@ -103,7 +103,7 @@ Same again for Gemini CLI chats under `~/.gemini/tmp/`:
   meaningless sum. Output tokens are summed normally.
 - Renames live in `~/.gemini/_gemini_aliases.json`; the chat log is untouched.
 
-### opencode tab (`/opencode`)
+### Opencode tab (`/opencode`)
 
 opencode keeps no log files at all — everything lives in one SQLite database at
 `~/.local/share/opencode/opencode.db`, read here through Node's built-in
@@ -124,9 +124,9 @@ opencode keeps no log files at all — everything lives in one SQLite database a
   in the opencode TUI too. Deleting a session or project deletes those rows;
   messages and parts cascade with them.
 
-### cursor-agent tab (`/cursor`)
+### Cursor tab (`/cursor`)
 
-cursor-agent gives every chat its own directory under
+`cursor-agent` gives every chat its own directory under
 `~/.cursor/chats/<workspace hash>/<session uuid>/`:
 
 - `meta.json` holds the title, the real `cwd`, and the timestamps. The
@@ -142,9 +142,9 @@ cursor-agent gives every chat its own directory under
   are reported as **0**. Size is the weight of `store.db`.
 - Renames live in `~/.cursor/chats/_aliases.json`; the store is never written.
 
-### grok tab (`/grok`)
+### Grok tab (`/grok`)
 
-grok already shards by working directory — the folder name *is* the cwd,
+`grok` already shards by working directory — the folder name *is* the cwd,
 percent-encoded — so projects come for free:
 
 - A session is `~/.grok/sessions/<encoded cwd>/<uuid>/`, with `summary.json`
@@ -188,7 +188,7 @@ Muse Code writes an append-only event log per session, sharded by local date at
   `~/.gemini/tmp/`, `~/.local/share/opencode/opencode.db`, `~/.cursor/chats/`,
   `~/.grok/sessions/`, or `~/.local/share/muse/sessions/`. Each appears the
   first time you run that agent. Tabs whose storage is missing simply render
-  empty. The opencode, cursor-agent and grok tabs need **Node.js 22.5+** for
+  empty. The Opencode, Cursor and Grok tabs need **Node.js 22.5+** for
   `node:sqlite`.
 
 ### 2. Get the code
