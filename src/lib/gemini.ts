@@ -8,9 +8,9 @@ import {
   GEMINI_PROJECTS_JSON,
   encodeId,
   decodeId,
-} from "./paths";
-import type { ProjectSummary, SessionSummary } from "./sessions";
-import type { AgentEntry } from "./transcript";
+} from "./paths.ts";
+import type { ProjectSummary, SessionSummary } from "./sessions.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // Gemini CLI keeps chats under

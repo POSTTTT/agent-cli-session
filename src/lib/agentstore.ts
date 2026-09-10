@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import path from "node:path";
-import type { ProjectSummary, SessionSummary } from "./sessions";
-import type { AgentEntry } from "./transcript";
+import type { ProjectSummary, SessionSummary } from "./sessions.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // The pieces every agent viewer needs but nothing about a specific log format:

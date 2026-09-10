@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import path from "node:path";
-import { PROJECTS_DIR, decodeProjectId, encodeProjectId } from "./paths";
-import { loadAliases, getAlias } from "./aliases";
+import { PROJECTS_DIR, decodeProjectId, encodeProjectId } from "./paths.ts";
+import { loadAliases, getAlias } from "./aliases.ts";
 
 export type ProjectSummary = {
   id: string;

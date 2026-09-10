@@ -1,4 +1,4 @@
-import type { AgentStore } from "./agentstore";
+import type { AgentStore } from "./agentstore.ts";
 import { cursorStore } from "./cursor.ts";
 import { grokStore } from "./grok.ts";
 import { museStore } from "./muse.ts";

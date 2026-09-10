@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { OPENCODE_DB, encodeId, decodeId } from "./paths.ts";
-import type { ProjectSummary, SessionSummary } from "./sessions";
-import type { AgentEntry } from "./transcript";
+import type { ProjectSummary, SessionSummary } from "./sessions.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // opencode stores everything in one SQLite file (~/.local/share/opencode/

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { PROJECTS_DIR } from "./paths";
+import { PROJECTS_DIR } from "./paths.ts";
 
 const ALIASES_PATH = path.join(PROJECTS_DIR, "_aliases.json");
 

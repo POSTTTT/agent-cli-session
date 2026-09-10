@@ -1,4 +1,4 @@
-import type { ProjectSummary } from "./sessions";
+import type { ProjectSummary } from "./sessions.ts";
 
 export type Node = {
   name: string;

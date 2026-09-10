@@ -17,8 +17,8 @@ import type {
   ProjectSummary,
   SearchHit,
   SessionSummary,
-} from "./agentstore";
-import type { AgentEntry } from "./transcript";
+} from "./agentstore.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // cursor-agent gives every chat its own directory,

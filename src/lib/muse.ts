@@ -15,8 +15,8 @@ import type {
   ProjectSummary,
   SearchHit,
   SessionSummary,
-} from "./agentstore";
-import type { AgentEntry } from "./transcript";
+} from "./agentstore.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // Muse Code writes one append-only event log per session, sharded by local

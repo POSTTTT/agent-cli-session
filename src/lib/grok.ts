@@ -22,8 +22,8 @@ import type {
   ProjectSummary,
   SearchHit,
   SessionSummary,
-} from "./agentstore";
-import type { AgentEntry } from "./transcript";
+} from "./agentstore.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // grok shards sessions by working directory — the folder name is the cwd,
