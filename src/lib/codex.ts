@@ -5,11 +5,12 @@ import path from "node:path";
 import {
   CODEX_SESSIONS_DIR,
   CODEX_SESSION_INDEX,
+  CODEX_IMPORTS_INDEX,
   encodeId,
   decodeId,
-} from "./paths";
-import type { ProjectSummary, SessionSummary } from "./sessions";
-import type { AgentEntry } from "./transcript";
+} from "./paths.ts";
+import type { ProjectSummary, SessionSummary } from "./sessions.ts";
+import type { AgentEntry } from "./transcript.ts";
 
 // ---------------------------------------------------------------------------
 // Codex stores every session as a JSONL "rollout" file under
@@ -77,7 +78,36 @@ async function walkCodexFiles(): Promise<CodexFile[]> {
   return out;
 }
 
-async function summarizeCodexFile(absPath: string): Promise<CodexMeta> {
+/**
+ * Newer Codex builds emit conversation items as
+ * `event_msg.item_completed` with `item.content = [{ type, text }]`
+ * instead of the older `user_message` / `agent_message` events.
+ */
+function itemText(item: any): string {
+  const c = item?.content ?? item?.text;
+  if (typeof c === "string") return c;
+  if (Array.isArray(c))
+    return c
+      .map((part: any) => (typeof part === "string" ? part : part?.text ?? ""))
+      .join("")
+      .trim();
+  return "";
+}
+
+// Every rollout has to be read to learn its cwd, and each page asks about the
+// same files repeatedly (once per project). Keyed by mtime so an appended-to
+// session re-reads on its next request.
+const summaryCache = new Map<string, { mtime: number; meta: CodexMeta }>();
+
+async function summarizeCodexFile(f: CodexFile): Promise<CodexMeta> {
+  const cached = summaryCache.get(f.absPath);
+  if (cached && cached.mtime === f.mtime) return cached.meta;
+  const meta = await readCodexMeta(f.absPath);
+  summaryCache.set(f.absPath, { mtime: f.mtime, meta });
+  return meta;
+}
+
+async function readCodexMeta(absPath: string): Promise<CodexMeta> {
   const meta: CodexMeta = {
     uuid: null,
     cwd: null,
@@ -122,6 +152,17 @@ async function summarizeCodexFile(absPath: string): Promise<CodexMeta> {
         }
       } else if (p.type === "agent_message") {
         meta.messageCount += 1;
+      } else if (p.type === "item_completed") {
+        const item = p.item;
+        if (item?.type === "UserMessage") {
+          meta.messageCount += 1;
+          if (!meta.firstUserPrompt) {
+            const t = itemText(item);
+            if (t && !t.startsWith("<")) meta.firstUserPrompt = t.slice(0, 500);
+          }
+        } else if (item?.type === "AgentMessage") {
+          meta.messageCount += 1;
+        }
       } else if (p.type === "token_count" && p.info?.total_token_usage) {
         // total_token_usage is cumulative — last occurrence wins.
         const u = p.info.total_token_usage;
@@ -138,7 +179,7 @@ export async function listCodexProjects(): Promise<ProjectSummary[]> {
   const files = await walkCodexFiles();
   const byCwd = new Map<string, ProjectSummary>();
   for (const f of files) {
-    const meta = await summarizeCodexFile(f.absPath);
+    const meta = await summarizeCodexFile(f);
     const cwd = meta.cwd ?? "(unknown)";
     const id = encodeId(cwd);
     let proj = byCwd.get(cwd);
@@ -169,14 +210,15 @@ export async function listCodexSessions(
   projectId: string,
 ): Promise<SessionSummary[]> {
   const cwd = decodeId(projectId);
-  const [files, aliases, threadNames] = await Promise.all([
+  const [files, aliases, threadNames, importTitles] = await Promise.all([
     walkCodexFiles(),
     loadCodexAliases(),
     loadCodexThreadNames(),
+    loadCodexImportTitles(),
   ]);
   const out: SessionSummary[] = [];
   for (const f of files) {
-    const meta = await summarizeCodexFile(f.absPath);
+    const meta = await summarizeCodexFile(f);
     if ((meta.cwd ?? "(unknown)") !== cwd) continue;
     const sessionId = encodeId(f.relPath);
     const uuid = meta.uuid ?? uuidFromRelPath(f.relPath);
@@ -190,7 +232,8 @@ export async function listCodexSessions(
       aiTitle: meta.uuid, // surfaced as the short id, no auto-title concept
       customTitle: null, // Codex has no /title equivalent
       // The CLI picker's title — used as the app's default so the two agree.
-      threadName: (uuid && threadNames.get(uuid)) || null,
+      threadName:
+        (uuid && (threadNames.get(uuid) ?? importTitles.get(uuid))) || null,
       messageCount: meta.messageCount,
       model: meta.model,
       gitBranch: meta.gitBranch,
@@ -249,6 +292,18 @@ export async function readCodexTranscript(
         entries.push({
           kind: "agent",
           text: typeof p.message === "string" ? p.message : "",
+          timestamp: ts,
+          raw: obj,
+        });
+      } else if (
+        p.type === "item_completed" &&
+        (p.item?.type === "UserMessage" || p.item?.type === "AgentMessage")
+      ) {
+        // Reasoning/CommandExecution items are skipped here: they arrive again
+        // as `response_item`s, which the block below already renders.
+        entries.push({
+          kind: p.item.type === "UserMessage" ? "user" : "agent",
+          text: itemText(p.item),
           timestamp: ts,
           raw: obj,
         });
@@ -330,7 +385,7 @@ export async function deleteCodexProject(projectId: string) {
   const cwd = decodeId(projectId);
   const files = await walkCodexFiles();
   for (const f of files) {
-    const meta = await summarizeCodexFile(f.absPath);
+    const meta = await summarizeCodexFile(f);
     if ((meta.cwd ?? "(unknown)") !== cwd) continue;
     await fs.rm(f.absPath, { force: true, maxRetries: 3, retryDelay: 200 });
   }
@@ -354,7 +409,7 @@ export async function searchCodexSessions(
   for (const f of files) {
     const hit = await scanFile(f.absPath, q);
     if (!hit) continue;
-    const meta = await summarizeCodexFile(f.absPath);
+    const meta = await summarizeCodexFile(f);
     results.push({
       projectId: encodeId(meta.cwd ?? "(unknown)"),
       sessionId: encodeId(f.relPath),
@@ -400,7 +455,7 @@ export async function computeCodexStats(): Promise<GlobalStats> {
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   for (const f of files) {
-    const meta = await summarizeCodexFile(f.absPath);
+    const meta = await summarizeCodexFile(f);
     cwds.add(meta.cwd ?? "(unknown)");
     totalBytes += f.bytes;
     totalInputTokens += meta.inputTokens;
@@ -450,6 +505,24 @@ async function loadCodexThreadNames(): Promise<Map<string, string>> {
     } catch {
       // ignore malformed lines
     }
+  }
+  return map;
+}
+
+/**
+ * Sessions imported from another agent (Codex Desktop's "external agent"
+ * import) carry their title here rather than in the session index.
+ */
+async function loadCodexImportTitles(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const parsed = JSON.parse(await fs.readFile(CODEX_IMPORTS_INDEX, "utf8"));
+    for (const rec of parsed?.records ?? []) {
+      if (typeof rec?.imported_thread_id === "string" && typeof rec?.title === "string")
+        map.set(rec.imported_thread_id, rec.title);
+    }
+  } catch {
+    // no imports yet, or an unreadable/malformed file
   }
   return map;
 }

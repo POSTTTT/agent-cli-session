@@ -17,6 +17,10 @@ export const CODEX_SESSIONS_DIR = path.join(CODEX_HOME, "sessions");
  * rollout files. Mirroring renames here is what makes them show up in `codex`.
  */
 export const CODEX_SESSION_INDEX = path.join(CODEX_HOME, "session_index.jsonl");
+export const CODEX_IMPORTS_INDEX = path.join(
+  CODEX_HOME,
+  "external_agent_session_imports.json",
+);
 
 export const GEMINI_HOME =
   process.env.GEMINI_HOME ?? path.join(os.homedir(), ".gemini");
