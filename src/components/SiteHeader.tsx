@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { formatDuration } from "@/lib/format";
+import type { LastActivity } from "@/lib/lastactivity";
 
 type Tool =
   | "claude"
@@ -12,7 +14,7 @@ type Tool =
   | "cursor"
   | "grok"
   | "muse";
-type Section = "projects" | "search" | "stats";
+type Section = "sessions" | "projects" | "search" | "stats";
 
 // `rounded` marks a logo that ships as an opaque square tile rather than a
 // transparent mark, so it needs its corners softened to sit in the pill row.
@@ -55,7 +57,7 @@ const TOOLS: {
   },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ activity }: { activity: LastActivity }) {
   const pathname = usePathname() ?? "/";
   const tool: Tool =
     TOOLS.slice(1).find(
@@ -94,7 +96,9 @@ export function SiteHeader() {
     ? "search"
     : pathname.includes("/stats")
       ? "stats"
-      : "projects";
+      : pathname.includes("/sessions")
+        ? "sessions"
+        : "projects";
 
   // Same sliding treatment for the section underline.
   const navRefs = useRef<Array<HTMLAnchorElement | null>>([]);
@@ -105,7 +109,7 @@ export function SiteHeader() {
 
   useEffect(() => {
     const measure = () => {
-      const idx = ["projects", "search", "stats"].indexOf(section);
+      const idx = ["sessions", "projects", "search", "stats"].indexOf(section);
       const el = navRefs.current[idx];
       if (el) setUnderline({ left: el.offsetLeft, width: el.offsetWidth });
     };
@@ -116,6 +120,7 @@ export function SiteHeader() {
 
   const base = tool === "claude" ? "" : `/${tool}`;
   const sub: { key: Section; label: string; href: string }[] = [
+    { key: "sessions", label: "Sessions", href: `${base}/sessions` },
     { key: "projects", label: "Projects", href: `${base}/` || "/" },
     { key: "search", label: "Search", href: `${base}/search` },
     { key: "stats", label: "Stats", href: `${base}/stats` },
@@ -169,6 +174,7 @@ export function SiteHeader() {
               >
                 <BrandMark src={t.logo} alt={t.label} rounded={t.rounded} />
                 {t.label}
+                <LastActive ms={activity[t.key]} active={active} />
               </Link>
             );
           })}
@@ -206,6 +212,25 @@ export function SiteHeader() {
         )}
       </nav>
     </header>
+  );
+}
+
+/**
+ * How long ago this agent last wrote anything, so the tab row doubles as a
+ * "what did I use most recently" list. Rendered from a server-computed
+ * timestamp, hence the hydration-warning suppression: the client re-reads the
+ * clock and may land a minute later.
+ */
+function LastActive({ ms, active }: { ms: number | null; active: boolean }) {
+  if (!ms) return null;
+  return (
+    <span
+      suppressHydrationWarning
+      title={`Last activity ${new Date(ms).toLocaleString()}`}
+      className={`text-[11px] tabular-nums ${active ? "text-black/50" : "text-white/40"}`}
+    >
+      {formatDuration(Date.now() - ms)}
+    </span>
   );
 }
 
